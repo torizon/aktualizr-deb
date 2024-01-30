@@ -1,2 +1,2 @@
 [bootloader]
-rollback_mode = "uboot_masked"
+rollback_mode = "none"
