@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+#export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+	    -DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH) \
+	    -DWARNING_AS_ERROR=OFF \
+	    -DBUILD_OSTREE=ON \
+	    -DBUILD_SOTA_TOOLS=OFF \
+	    -DAKTUALIZR_VERSION=1.0+git20240124.72b0ec5 \
+	    -DBUILD_TESTING=OFF

@@ -1,0 +1,18 @@
+---
+include:
+  - https://gitlab.int.toradex.com/rd/torizon-core/debian/debian-pipeline/raw/master/salsa-ci.yml
+  - https://gitlab.int.toradex.com/rd/torizon-core/debian/debian-pipeline/raw/master/pipeline-jobs.yml
+
+variables:
+  SALSA_CI_DISABLE_BUILD_PACKAGE_ARM64: 0
+  SALSA_CI_DISABLE_BUILD_PACKAGE_ARMHF: 0
+  RELEASE: 'testing'
+
+# Piuparts doesn't like we are forcing a older version of a package
+piuparts:
+  allow_failure: true
+
+# Since we use bookworm in d/changelog, lintian gets confused
+lintian:
+  allow_failure: true
+

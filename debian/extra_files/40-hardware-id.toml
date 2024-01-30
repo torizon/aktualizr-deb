@@ -1,0 +1,3 @@
+[provision]
+primary_ecu_hardware_id = "genericx86-64"
+primary_ecu_hardware_id = "Ubuntu-Cedes"
