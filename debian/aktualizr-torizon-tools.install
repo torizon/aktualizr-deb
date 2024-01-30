@@ -1,0 +1,4 @@
+usr/bin/aktualizr-get
+usr/bin/aktualizr-info
+usr/bin/aktualizr-secondary
+usr/lib/*/libaktualizr_secondary.so

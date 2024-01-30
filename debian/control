@@ -1,0 +1,65 @@
+Source: aktualizr-torizon
+Section: misc
+Priority: optional
+Maintainer: Carlos Henrique Lima Melara <carlos.melara@toradex.com>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake,
+ asn1c,
+ cmake,
+ curl,
+ git,
+ libarchive-dev,
+ libboost-dev,
+ libboost-filesystem-dev,
+ libboost-log-dev,
+ libboost-program-options-dev,
+ libcurl4-openssl-dev,
+ libostree-dev,
+ libpthread-stubs0-dev,
+ libsodium-dev,
+ libsqlite3-dev,
+ libssl-dev,
+ python3,
+ sqlite3
+Standards-Version: 4.6.2
+Homepage: https://www.github.com/torizon/aktualizr
+Vcs-Browser: https://www.github.com/torizon/aktualizr-pkg
+Vcs-Git: https://www.github.com/torizon/aktualizr-pkg.git
+
+Package: aktualizr-torizon
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: Toradex's fork of aktualizr
+ <Insert long description, indented with spaces.>
+
+Package: libaktualizr-torizon-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends:
+ libaktualizr-torizon1 (= ${binary:Version}),
+ ${misc:Depends},
+Description: Toradex's fork of aktualizr - header files
+ <Insert long description, indented with spaces.>
+
+Package: libaktualizr-torizon1
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: Toradex's fork of aktualizr - libaktualizr-torizon
+ <Insert long description, indented with spaces.>
+
+Package: aktualizr-torizon-tools
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: Toradex's fork of aktualizr - misc tools
+ <Insert long description, indented with spaces.>

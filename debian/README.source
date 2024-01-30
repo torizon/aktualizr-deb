@@ -1,0 +1,11 @@
+aktualizr needs jsoncpp and googletest libraries embedded to build correctly.
+This is because it's using an older of version of both. On googletests side,
+it's using a version that supports C++11, while newer only support C++14 or
+newer. On jsoncpp, it's using the soname version 24 which is older than what's
+current on Debian and Ubuntu (version 25 as of witing this).
+
+To make it happen, download the tarball, unpack it, git clone both libraries to
+third_party/ dir and checkout to the correct commit. Then repack and gbp
+import-orig it.
+
+ -- Carlos Henrique Lima Melara <carlos.melara@toradex.com>  Fri, 12 Jan 2024 12:34:30 -0300
