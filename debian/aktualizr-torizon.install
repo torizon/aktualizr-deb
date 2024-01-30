@@ -1,11 +1,11 @@
-usr/bin/aktualizr-torizon
-debian/extra_files/bl_actions.sh            usr/bin/
-debian/extra_files/secondaries.json         usr/lib/sota/
-debian/extra_files/root.crt                 usr/lib/sota/
-debian/extra_files/gateway.url              usr/lib/sota/
-debian/extra_files/50-secondaries.toml      usr/lib/sota/conf.d/
-debian/extra_files/70-reboot.toml           usr/lib/sota/conf.d/
 debian/extra_files/20-sota-device-cred.toml usr/lib/sota/conf.d/
 debian/extra_files/30-rollback.toml         usr/lib/sota/conf.d/
 debian/extra_files/40-hardware-id.toml      usr/lib/sota/conf.d/
+debian/extra_files/50-secondaries.toml      usr/lib/sota/conf.d/
 debian/extra_files/60-polling-interval.toml usr/lib/sota/conf.d/
+debian/extra_files/70-reboot.toml           usr/lib/sota/conf.d/
+debian/extra_files/gateway.url              usr/lib/sota/
+debian/extra_files/root.crt                 usr/lib/sota/
+usr/bin/aktualizr-info
+usr/bin/aktualizr-torizon
+usr/lib/*/libaktualizr.so
