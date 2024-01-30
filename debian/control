@@ -34,32 +34,4 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends},
 Description: Toradex's fork of aktualizr
- <Insert long description, indented with spaces.>
-
-Package: libaktualizr-torizon-dev
-Section: libdevel
-Architecture: any
-Multi-Arch: same
-Depends:
- libaktualizr-torizon1 (= ${binary:Version}),
- ${misc:Depends},
-Description: Toradex's fork of aktualizr - header files
- <Insert long description, indented with spaces.>
-
-Package: libaktualizr-torizon1
-Section: libs
-Architecture: any
-Multi-Arch: same
-Depends:
- ${shlibs:Depends},
- ${misc:Depends},
-Description: Toradex's fork of aktualizr - libaktualizr-torizon
- <Insert long description, indented with spaces.>
-
-Package: aktualizr-torizon-tools
-Architecture: any
-Depends:
- ${shlibs:Depends},
- ${misc:Depends},
-Description: Toradex's fork of aktualizr - misc tools
- <Insert long description, indented with spaces.>
+ Contains both the application and shared library.

@@ -1,2 +1,7 @@
 usr/bin/aktualizr-cert-provider
 usr/bin/uptane-generator
+usr/bin/aktualizr-get
+usr/bin/aktualizr-secondary
+usr/lib/*/libaktualizr_secondary.so
+usr/include/*
+usr/lib/*/pkgconfig/*
