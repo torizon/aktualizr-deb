@@ -1,0 +1,56 @@
+= Generate a self-signed fleet root certificate
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+
+When you move to production, you'll need to register your Fleet Root certificate with OTA Connect server.
+
+If you don't yet have your own CA for signing device certificates, you can generate a self-signed certificate for testing.
+
+To generate a self-signed fleet root certificate, follow these steps: ::
+. Create a directory structure for your fleet. We will use this same basic directory structure in each of the sections of this guide.
++
+[source,bash]
+----
+export fleet_name=myfleet
+mkdir ${fleet_name}
+mkdir ${fleet_name}/devices
+----
++
+. Create a file called `fleet_root_ca.cnf` inside your fleet directory to configure openSSL for generating your fleet root CA:
++
+[source,bash]
+----
+cat <<EOF > ${fleet_name}/fleet_root_ca.cnf
+[req]
+prompt = no
+distinguished_name = dn
+x509_extensions = ext
+
+[dn]
+CN = \$ENV::fleet_name
+
+[ext]
+basicConstraints=CA:TRUE
+keyUsage = keyCertSign
+extendedKeyUsage = critical, serverAuth
+EOF
+----
++
+TIP: All of the listed extensions in this config file are required. If your fleet root CA does not contain at least these three extensions, it will be rejected.
+. Generate the key and cert using openssl on the command line.
++
+[source,bash]
+----
+openssl ecparam -genkey -name prime256v1 | openssl ec -out "${fleet_name}/fleet_root_ca.key"
+openssl req -new -x509 -days 3650 -key "${fleet_name}/fleet_root_ca.key" -config \
+  "${fleet_name}/fleet_root_ca.cnf" -out "${fleet_name}/fleet_root_ca.crt"
+----
++
+WARNING: These commands are designed for openssl 1.1 or higher. If you are using an older version, or if you are using LibreSSL, it may not work. Note that the default openssl provided by MacOS is LibreSSL; if you wish to try this process on a Mac you should install openssl from HomeBrew and add it to your path.
+. Send an email to link:mailto:otaconnect.support@here.com[otaconnect.support@here.com] with your `fleet_root_ca.crt` file (but not `fleet_root_ca.key`!), and ask us register it as a Fleet Root certificate on your OTA Connect account. Depending on your account usage we may require extra verification steps to validate the new CA.

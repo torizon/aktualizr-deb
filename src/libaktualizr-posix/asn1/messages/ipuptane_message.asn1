@@ -1,0 +1,237 @@
+IpUptane DEFINITIONS ::= BEGIN
+  -- Keep these in sync with KeyType in types.h.
+  -- However, this is missing kRSA3072.
+  AKIpUptaneKeyType ::= ENUMERATED {
+    ed25519(0),
+    rsa2048(1),
+    rsa4096(2),
+    unknownKey(255),
+    ...
+  }
+
+  -- Deprecated (v1).
+  AKInstallationResult ::= ENUMERATED {
+    success,
+    failure,
+    ...
+  }
+
+  -- Keep these in sync with data::ResultCode::Numeric in types.h.
+  AKInstallationResultCode ::= ENUMERATED {
+    ok(0),
+    alreadyProcessed(1),
+    validationFailed(3),
+    installFailed(4),
+    downloadFailed(5),
+    internalError(18),
+    generalError(19),
+    needCompletion(21),
+    customError(22),
+    operationCancelled(23),
+    unknown(-1),
+    ...
+  }
+
+  AKRepoType ::= ENUMERATED {
+    director,
+    image,
+    ...
+  }
+
+  -- Json format Image repository metadata. Deprecated (v1).
+  AKImageMetaJson ::= SEQUENCE {
+    root OCTET STRING,
+    timestamp OCTET STRING,
+    snapshot OCTET STRING,
+    targets OCTET STRING,
+    ...
+  }
+
+  -- Json format Director metadata. Deprecated (v1).
+  AKDirectorMetaJson ::= SEQUENCE {
+    root OCTET STRING,
+    targets OCTET STRING,
+    ...
+  }
+
+  -- Json format generic single metadata object
+  AKMetaJson ::= SEQUENCE {
+    role OCTET STRING,
+    json OCTET STRING,
+    ...
+  }
+
+  -- Collection of metadata objects from one repo
+  AKMetaCollection ::= SEQUENCE OF AKMetaJson
+
+  AKGetInfoReqMes ::= SEQUENCE {
+    ...
+  }
+
+  AKGetInfoRespMes ::= SEQUENCE {
+    ecuSerial UTF8String,
+    hwId UTF8String,
+    keyType AKIpUptaneKeyType,
+    key OCTET STRING,
+    ...
+  }
+
+  AKManifestReqMes ::= SEQUENCE {
+    ...
+  }
+
+  AKManifestRespMes ::= SEQUENCE {
+    manifest CHOICE {
+      json OCTET STRING
+    },
+    ...
+  }
+
+  -- Deprecated (v1).
+  AKPutMetaReqMes ::= SEQUENCE {
+    image CHOICE {
+      json AKImageMetaJson
+    },
+    director CHOICE {
+      json AKDirectorMetaJson
+    },
+    ...
+  }
+
+  -- Deprecated (v1).
+  AKPutMetaRespMes ::= SEQUENCE {
+    result AKInstallationResult,
+    ...
+  }
+
+  AKPutMetaReq2Mes ::= SEQUENCE {
+    imageRepo CHOICE {
+      collection AKMetaCollection
+    },
+    directorRepo CHOICE {
+      collection AKMetaCollection
+    },
+    ...
+  }
+
+  AKPutMetaResp2Mes ::= SEQUENCE {
+    result AKInstallationResultCode,
+    description OCTET STRING,
+    ...
+  }
+
+  -- Deprecated (v1).
+  AKSendFirmwareReqMes ::= SEQUENCE {
+    firmware OCTET STRING,
+    ...
+  }
+
+  -- Deprecated (v1).
+  AKSendFirmwareRespMes ::= SEQUENCE {
+    result AKInstallationResult,
+    ...
+  }
+
+  -- Still used by v2.
+  AKInstallReqMes ::= SEQUENCE {
+    hash OCTET STRING,
+    ...
+  }
+
+  -- Deprecated (v1).
+  AKInstallRespMes ::= SEQUENCE {
+    result AKInstallationResultCode,
+    ...
+  }
+
+  AKInstallResp2Mes ::= SEQUENCE {
+    result AKInstallationResultCode,
+    description OCTET STRING,
+    ...
+  }
+
+  AKUploadDataReqMes ::= SEQUENCE {
+    data OCTET STRING,
+    ...
+  }
+
+  AKUploadDataRespMes ::= SEQUENCE {
+    result AKInstallationResultCode,
+    description OCTET STRING,
+    ...
+  }
+
+  AKDownloadOstreeRevReqMes ::= SEQUENCE {
+    tlsCred OCTET STRING,
+    ...
+  }
+
+  AKDownloadOstreeRevRespMes ::= SEQUENCE {
+    result AKInstallationResultCode,
+    description OCTET STRING,
+    ...
+  }
+
+  AKVersionReqMes ::= SEQUENCE {
+    version INTEGER,
+    ...
+  }
+
+  AKVersionRespMes ::= SEQUENCE {
+    version INTEGER,
+    ...
+  }
+
+  AKRootVerReqMes ::= SEQUENCE {
+    repotype AKRepoType,
+    ...
+  }
+
+  AKRootVerRespMes ::= SEQUENCE {
+    version INTEGER,
+    ...
+  }
+
+  AKPutRootReqMes ::= SEQUENCE {
+    repotype AKRepoType,
+    json OCTET STRING,
+    ...
+  }
+
+  AKPutRootRespMes ::= SEQUENCE {
+    result AKInstallationResultCode,
+    description OCTET STRING,
+    ...
+  }
+
+
+  AKIpUptaneMes ::= CHOICE {
+    getInfoReq [0] AKGetInfoReqMes,
+    getInfoResp [1] AKGetInfoRespMes,
+    manifestReq [2] AKManifestReqMes,
+    manifestResp [3] AKManifestRespMes,
+    putMetaReq [4] AKPutMetaReqMes,
+    putMetaResp [5] AKPutMetaRespMes,
+    sendFirmwareReq [6] AKSendFirmwareReqMes,
+    sendFirmwareResp [7] AKSendFirmwareRespMes,
+    installReq [8] AKInstallReqMes,
+    installResp [9] AKInstallRespMes,
+
+    uploadDataReq [10] AKUploadDataReqMes,
+    uploadDataResp [11] AKUploadDataRespMes,
+    downloadOstreeRevReq [12] AKDownloadOstreeRevReqMes,
+    downloadOstreeRevResp [13] AKDownloadOstreeRevRespMes,
+    putMetaReq2 [14] AKPutMetaReq2Mes,
+    putMetaResp2 [15] AKPutMetaResp2Mes,
+    installResp2 [16] AKInstallResp2Mes,
+    versionReq [17] AKVersionReqMes,
+    versionResp [18] AKVersionRespMes,
+
+    rootVerReq [19] AKRootVerReqMes,
+    rootVerResp [20] AKRootVerRespMes,
+    putRootReq [21] AKPutRootReqMes,
+    putRootResp [22] AKPutRootRespMes,
+    ...
+  }
+
+END

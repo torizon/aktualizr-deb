@@ -1,0 +1,32 @@
+= OSTree and TreeHub
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+== OSTree
+
+
+link:http://ostree.readthedocs.io/en/latest/[OSTree] is an open-source tool that combines a "git-like" model for committing and downloading bootable filesystem trees, along with a layer for deploying them and managing the bootloader configuration. It is actively developed and support by Red Hat, and used in link:http://flatpak.org/[flatpak] and link:https://github.com/projectatomic/[Project Atomic].
+
+For more on why OSTree is the best tool for the job of doing embedded device updates, you can also jump straight to  xref:comparing-full-filesystem-update-strategies.adoc[Comparing full-filesystem update strategies].
+
+.Doing It Wrong™: Bad choices for embedded updates
+****
+* Package managers
++
+Hey, every Linux distro does it this way--why don't I just use a dpkg/rpm/apk-based package manager for my embedded system? I can control it remotely, and as long as I maintain the same sequence of package installs from the same sources, I should have perfectly consistent filesystems, right?
++
+The problem with this approach is that updates aren't guaranteed to be atomic, so it's quite easy to get the system into a state that requires user intervention to fix, especially if it's rebooted during an update. That might be fine on the desktop or on a server where there's a reasonable expectation that a user could intervene, but it doesn't work for embedded devices.
+* "Update Mode" and similar designs
++
+The idea here is that you boot into a mode that allows the root filesystem to be overwritten, either via a pre-downloaded image or via something streamed over the network. Fortunately, we rarely see this design in the wild anymore, unless it's coupled with another, specialized device like a diagnostics gateway or flashing unit inside a vehicle that implements complex recovery and rollback logic. Without such mitigations, though, this is a very poor choice for embedded, because of the risk that users may disconnect the device while the new image is being flashed. That could potentially brick the device, or require an in-person service call to fix. Lower-end home routers and DSL modems sometimes still choose this method; doing a quick Google search for "link:https://www.google.com/search?q=firmware+update+bricked+router[firmware update bricked router]" should show why this is a bad idea.
+****
+
+== TreeHub
+
+Since OSTree is "git-like", you can probably imagine that you can have remote repositories. TreeHub is exactly that. It's seamlessly integrated into the meta-updater layer and into the {product-name} site itself. Your builds get automatically pushed to TreeHub as soon as you make them, and you can use {product-name-short} to wirelessly update your devices--one at a time, or in targeted campaigns. You can even set certain devices to automatically pull updates from TreeHub as soon as they're pushed, and stop wasting time re-flashing the units on your test bench every time you build new code.
+

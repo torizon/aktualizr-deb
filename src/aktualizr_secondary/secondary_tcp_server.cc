@@ -1,0 +1,195 @@
+#include "secondary_tcp_server.h"
+
+#include <netinet/tcp.h>
+
+#include "AKInstallationResultCode.h"
+#include "AKIpUptaneMes.h"
+#include "asn1/asn1_message.h"
+#include "logging/logging.h"
+#include "msg_handler.h"
+#include "utilities/dequeue_buffer.h"
+
+SecondaryTcpServer::SecondaryTcpServer(MsgHandler &msg_handler, const std::string &primary_ip, in_port_t primary_port,
+                                       in_port_t port, bool reboot_after_install)
+    : msg_handler_(msg_handler),
+      listen_socket_(port),
+      keep_running_(true),
+      reboot_after_install_(reboot_after_install),
+      is_running_(false) {
+  if (primary_ip.empty()) {
+    return;
+  }
+
+  ConnectionSocket conn_socket(primary_ip, primary_port, listen_socket_.port());
+  if (conn_socket.connect() == 0) {
+    LOG_INFO << "Connected to Primary, sending info about this Secondary.";
+    HandleOneConnection(*conn_socket);
+  } else {
+    LOG_INFO << "Failed to connect to Primary.";
+  }
+}
+
+void SecondaryTcpServer::run() {
+  if (listen(*listen_socket_, SOMAXCONN) < 0) {
+    throw std::system_error(errno, std::system_category(), "listen");
+  }
+  LOG_INFO << "Secondary TCP server listening on " << listen_socket_.ToString();
+
+  {
+    std::unique_lock<std::mutex> lock(running_condition_mutex_);
+    is_running_ = true;
+    running_condition_.notify_all();
+  }
+
+  bool first_connection = true;
+
+  while (keep_running_.load()) {
+    sockaddr_storage peer_sa{};
+    socklen_t peer_sa_size = sizeof(sockaddr_storage);
+
+    LOG_DEBUG << "Waiting for connection from Primary...";
+    int con_fd = accept(*listen_socket_, reinterpret_cast<sockaddr *>(&peer_sa), &peer_sa_size);
+    if (con_fd == -1) {
+      // Accept can fail if a client closes connection/client socket before a TCP handshake completes or
+      // a network connection goes down in the middle of a TCP handshake procedure. At first glance it looks like
+      // we can just continue listening/accepting new connections in such cases instead of exiting from the server loop
+      // which leads to exiting of the overall daemon process.
+      // But, accept() failure, potentially can be caused by some incorrect state of the listening socket
+      // which means that it will keep returning error, so, exiting from the daemon process and letting
+      // systemd to restart it looks like the most reliable solution that covers all edge cases.
+      LOG_INFO << "Socket accept failed, aborting.";
+      break;
+    }
+
+    if (first_connection) {
+      LOG_INFO << "Primary connected.";
+      first_connection = false;
+    } else {
+      LOG_DEBUG << "Primary reconnected.";
+    }
+    auto continue_running = HandleOneConnection(*Socket(con_fd));
+    if (!continue_running) {
+      keep_running_.store(false);
+    }
+    LOG_DEBUG << "Primary disconnected.";
+  }
+
+  {
+    std::unique_lock<std::mutex> lock(running_condition_mutex_);
+    is_running_ = false;
+    running_condition_.notify_all();
+  }
+
+  LOG_INFO << "Secondary TCP server exiting.";
+}
+
+void SecondaryTcpServer::stop() {
+  LOG_DEBUG << "Stopping Secondary TCP server...";
+  keep_running_.store(false);
+  // unblock accept
+  ConnectionSocket("localhost", listen_socket_.port()).connect();
+}
+
+in_port_t SecondaryTcpServer::port() const { return listen_socket_.port(); }
+SecondaryTcpServer::ExitReason SecondaryTcpServer::exit_reason() const { return exit_reason_; }
+
+static bool sendResponseMessage(int socket_fd, const Asn1Message::Ptr &resp_msg);
+
+bool SecondaryTcpServer::HandleOneConnection(int socket) {
+  // Outside the message loop, because one recv() may have parts of 2 messages
+  // Note that one recv() call returning 2+ messages doesn't work at the
+  // moment. This shouldn't be a problem until we have messages that aren't
+  // strictly request/response
+  DequeueBuffer buffer;
+  bool keep_running_server = true;
+  bool keep_running_current_session = true;
+
+  while (keep_running_current_session) {  // Keep reading until we get an error
+    // Read an incoming message
+    AKIpUptaneMes_t *m = nullptr;
+    asn_dec_rval_t res{};
+    asn_codec_ctx_s context{};
+    ssize_t received;
+
+    do {
+      received = recv(socket, buffer.Tail(), buffer.TailSpace(), 0);
+      if (received < 0) {
+        LOG_ERROR << "Failed to read data from a server socket: " << strerror(errno);
+        break;
+      }
+      buffer.HaveEnqueued(static_cast<size_t>(received));
+      res = ber_decode(&context, &asn_DEF_AKIpUptaneMes, reinterpret_cast<void **>(&m), buffer.Head(), buffer.Size());
+      buffer.Consume(res.consumed);
+    } while (res.code == RC_WMORE && received > 0);
+    // Note that ber_decode allocates *m even on failure, so this must always be done
+    Asn1Message::Ptr request_msg = Asn1Message::FromRaw(&m);
+
+    if (received == 0) {
+      LOG_TRACE << "Primary has closed a connection socket";
+      break;
+    }
+
+    if (received < 0) {
+      LOG_ERROR << "Error while reading message data from a socket: " << strerror(errno);
+      break;
+    }
+
+    if (res.code != RC_OK) {
+      LOG_ERROR << "Failed to decode a message received from Primary";
+      break;
+    }
+
+    LOG_DEBUG << "Received a request from Primary: " << request_msg->toStr();
+    Asn1Message::Ptr response_msg = Asn1Message::Empty();
+    MsgHandler::ReturnCode handle_status_code = msg_handler_.handleMsg(request_msg, response_msg);
+
+    switch (handle_status_code) {
+      case MsgHandler::ReturnCode::kRebootRequired: {
+        exit_reason_ = ExitReason::kRebootNeeded;
+        keep_running_current_session = sendResponseMessage(socket, response_msg);
+        if (reboot_after_install_) {
+          keep_running_server = keep_running_current_session = false;
+        }
+        break;
+      }
+      case MsgHandler::ReturnCode::kOk: {
+        keep_running_current_session = sendResponseMessage(socket, response_msg);
+        break;
+      }
+      case MsgHandler::ReturnCode::kUnkownMsg:
+      default: {
+        // TODO: consider sending NOT_SUPPORTED/Unknown message and closing connection socket
+        keep_running_current_session = false;
+        LOG_INFO << "Unsupported message received from Primary: " << request_msg->toStr();
+      }
+    }  // switch
+
+  }  // Go back round and read another message
+
+  return keep_running_server;
+  // Parse error => Shutdown the socket
+  // write error => Shutdown the socket
+  // Timeout on write => shutdown
+}
+
+void SecondaryTcpServer::wait_until_running(int timeout) {
+  std::unique_lock<std::mutex> lock(running_condition_mutex_);
+  running_condition_.wait_for(lock, std::chrono::seconds(timeout), [&] { return is_running_; });
+}
+
+bool sendResponseMessage(int socket_fd, const Asn1Message::Ptr &resp_msg) {
+  LOG_DEBUG << "Encoding and sending response message";
+
+  int optval = 0;
+  setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(int));
+  asn_enc_rval_t encode_result = der_encode(&asn_DEF_AKIpUptaneMes, &resp_msg->msg_, Asn1SocketWriteCallback,
+                                            reinterpret_cast<void *>(&socket_fd));
+  if (encode_result.encoded == -1) {
+    LOG_ERROR << "Failed to encode a response message";
+    return false;  // write error
+  }
+  optval = 1;
+  setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(int));
+
+  return true;
+}

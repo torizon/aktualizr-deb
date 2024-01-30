@@ -1,0 +1,292 @@
+#include <gtest/gtest.h>
+
+#include <map>
+#include <vector>
+
+#include <json/json.h>
+
+#include "logging/logging.h"
+#include "uptane/exceptions.h"
+#include "uptane/tuf.h"
+#include "utilities/utils.h"
+
+/* Validate Root metadata. */
+TEST(Root, RootValidates) {
+  Json::Value initial_root = Utils::parseJSONFile("tests/tuf/sample1/root.json");
+  LOG_INFO << "Root is:" << initial_root;
+
+  Uptane::Root root1(Uptane::Root::Policy::kAcceptAll);
+  Uptane::Root root(Uptane::RepositoryType::Director(), initial_root, root1);
+
+  EXPECT_NO_THROW(Uptane::Root(Uptane::RepositoryType::Director(), initial_root, root));
+}
+
+/* Throw an exception if Root metadata is unsigned. */
+TEST(Root, RootJsonNoKeys) {
+  Uptane::Root root1(Uptane::Root::Policy::kAcceptAll);
+  Json::Value initial_root = Utils::parseJSONFile("tests/tuf/sample1/root.json");
+  initial_root["signed"].removeMember("keys");
+  EXPECT_THROW(Uptane::Root(Uptane::RepositoryType::Director(), initial_root, root1), Uptane::InvalidMetadata);
+}
+
+/**
+ * For offline updates we want to include more keys in root.json. Check that it
+ * is OK for root.json to contain keys types we don't know about.
+ * */
+TEST(Root, ExtraKeysOk) {
+  Uptane::Root root1(Uptane::Root::Policy::kAcceptAll);
+  Json::Value initial_root = Utils::parseJSONFile("tests/tuf/root-with-extra-keys.json");
+  Uptane::Root root(Uptane::RepositoryType::Director(), initial_root, root1);
+  EXPECT_NO_THROW(Uptane::Root(Uptane::RepositoryType::Director(), initial_root, root));
+}
+
+/* Throw an exception if Root metadata has no roles. */
+TEST(Root, RootJsonNoRoles) {
+  Uptane::Root root1(Uptane::Root::Policy::kAcceptAll);
+  Json::Value initial_root = Utils::parseJSONFile("tests/tuf/sample1/root.json");
+  initial_root["signed"].removeMember("roles");
+  EXPECT_THROW(Uptane::Root(Uptane::RepositoryType::Director(), initial_root, root1), Uptane::InvalidMetadata);
+}
+
+/**
+ * Check that a root.json that uses "method": "rsassa-pss-sha256" validates correctly
+ */
+TEST(Root, RootJsonRsassaPssSha256) {
+  Uptane::Root root1(Uptane::Root::Policy::kAcceptAll);
+  Json::Value initial_root = Utils::parseJSONFile("tests/tuf/rsassa-pss-sha256/root.json");
+  LOG_INFO << "Root is:" << initial_root;
+
+  Uptane::Root root(Uptane::RepositoryType::Director(), initial_root, root1);
+  EXPECT_NO_THROW(Uptane::Root(Uptane::RepositoryType::Director(), initial_root, root));
+}
+
+/* Validate TUF roles. */
+TEST(Role, ValidateRoles) {
+  Uptane::Role root = Uptane::Role::Root();
+  EXPECT_EQ(root.ToInt(), 0);
+  EXPECT_EQ(root.ToString(), "root");
+  EXPECT_EQ(root.IsDelegation(), false);
+
+  Uptane::Role snapshot = Uptane::Role::Snapshot();
+  EXPECT_EQ(snapshot.ToInt(), 1);
+  EXPECT_EQ(snapshot.ToString(), "snapshot");
+  EXPECT_EQ(snapshot.IsDelegation(), false);
+
+  Uptane::Role targets = Uptane::Role::Targets();
+  EXPECT_EQ(targets.ToInt(), 2);
+  EXPECT_EQ(targets.ToString(), "targets");
+  EXPECT_EQ(targets.IsDelegation(), false);
+
+  Uptane::Role timestamp = Uptane::Role::Timestamp();
+  EXPECT_EQ(timestamp.ToInt(), 3);
+  EXPECT_EQ(timestamp.ToString(), "timestamp");
+  EXPECT_EQ(timestamp.IsDelegation(), false);
+}
+
+/* Delegated roles have custom names. */
+TEST(Role, ValidDelegationName) {
+  Uptane::Role delegated = Uptane::Role::Delegation("whatever");
+  EXPECT_EQ(delegated.ToString(), "whatever");
+  EXPECT_EQ(delegated.IsDelegation(), true);
+}
+
+/* Reject delegated role names that are identical to reserved role names. */
+TEST(Role, InvalidDelegationName) {
+  EXPECT_THROW(Uptane::Role::Delegation("root"), Uptane::Exception);
+  EXPECT_THROW(Uptane::Role::Delegation("snapshot"), Uptane::Exception);
+  EXPECT_THROW(Uptane::Role::Delegation("targets"), Uptane::Exception);
+  EXPECT_THROW(Uptane::Role::Delegation("timestamp"), Uptane::Exception);
+}
+
+Json::Value generateTarget(const std::string& hash, const int length) {
+  Json::Value target;
+  Json::Value hashes;
+  hashes["sha256"] = hash;
+  target["hashes"] = hashes;
+  target["length"] = length;
+  return target;
+}
+
+Json::Value generateDirectorTarget(const std::string& hash, const int length, const Uptane::EcuMap& ecu_map) {
+  Json::Value target = generateTarget(hash, length);
+  Json::Value custom;
+  Json::Value ecus;
+  for (auto it = ecu_map.cbegin(); it != ecu_map.cend(); ++it) {
+    Json::Value current;
+    current["hardwareId"] = it->second.ToString();
+    ecus[it->first.ToString()] = current;
+  }
+  custom["ecuIdentifiers"] = ecus;
+  target["custom"] = custom;
+  return target;
+}
+
+Json::Value generateImageTarget(const std::string& hash, const int length,
+                                const std::vector<Uptane::HardwareIdentifier>& hardwareIds) {
+  Json::Value target = generateTarget(hash, length);
+  Json::Value custom;
+  Json::Value hwids;
+  for (Json::Value::ArrayIndex i = 0; i < hardwareIds.size(); ++i) {
+    hwids[i] = hardwareIds[i].ToString();
+  }
+  custom["hardwareIds"] = hwids;
+  target["custom"] = custom;
+  return target;
+}
+
+/* Equivalent metadata generated by both repos should match. */
+TEST(Target, Match) {
+  Uptane::HardwareIdentifier hwid("fake-test");
+  std::vector<Uptane::HardwareIdentifier> hardwareIds;
+  Uptane::EcuMap ecu_map;
+  hardwareIds.emplace_back(hwid);
+  ecu_map.insert({Uptane::EcuSerial("serial"), hwid});
+  Uptane::Target target1("abc", generateDirectorTarget("hash_good", 739, ecu_map));
+  Uptane::Target target2("abc", generateImageTarget("hash_good", 739, hardwareIds));
+  EXPECT_TRUE(target1.MatchTarget(target2));
+  EXPECT_TRUE(target2.MatchTarget(target1));
+}
+
+/* Two Target objects created by the Director should match. */
+TEST(Target, MatchDirector) {
+  Uptane::HardwareIdentifier hwid("first-test");
+  Uptane::HardwareIdentifier hwid2("second-test");
+  Uptane::EcuMap ecu_map;
+  ecu_map.insert({Uptane::EcuSerial("serial"), hwid});
+  ecu_map.insert({Uptane::EcuSerial("serial2"), hwid2});
+  Uptane::Target target1("abc", generateDirectorTarget("hash_good", 739, ecu_map));
+  Uptane::Target target2("abc", generateDirectorTarget("hash_good", 739, ecu_map));
+  EXPECT_TRUE(target1.MatchTarget(target2));
+  EXPECT_TRUE(target2.MatchTarget(target1));
+}
+
+/* Two Target objects created by the Image repo should match. */
+TEST(Target, MatchImages) {
+  Uptane::HardwareIdentifier hwid("first-test");
+  Uptane::HardwareIdentifier hwid2("second-test");
+  std::vector<Uptane::HardwareIdentifier> hardwareIds;
+  hardwareIds.emplace_back(hwid);
+  hardwareIds.emplace_back(hwid2);
+  Uptane::Target target1("abc", generateImageTarget("hash_good", 739, hardwareIds));
+  Uptane::Target target2("abc", generateImageTarget("hash_good", 739, hardwareIds));
+  EXPECT_TRUE(target1.MatchTarget(target2));
+  EXPECT_TRUE(target2.MatchTarget(target1));
+}
+
+/* Extra hardware IDs in the Image Target metadata should still match. */
+TEST(Target, MatchExtraHwId) {
+  Uptane::HardwareIdentifier hwid("fake-test");
+  std::vector<Uptane::HardwareIdentifier> hardwareIds;
+  Uptane::EcuMap ecu_map;
+  hardwareIds.emplace_back(hwid);
+  ecu_map.insert({Uptane::EcuSerial("serial"), hwid});
+  Uptane::Target target1("abc", generateDirectorTarget("hash_good", 739, ecu_map));
+  hardwareIds.emplace_back(Uptane::HardwareIdentifier("extra"));
+  Uptane::Target target2("abc", generateImageTarget("hash_good", 739, hardwareIds));
+  EXPECT_TRUE(target1.MatchTarget(target2));
+  EXPECT_TRUE(target2.MatchTarget(target1));
+}
+
+/* Multiple ECUs should still match. */
+TEST(Target, MatchTwo) {
+  Uptane::HardwareIdentifier hwid("first-test");
+  Uptane::HardwareIdentifier hwid2("second-test");
+  std::vector<Uptane::HardwareIdentifier> hardwareIds;
+  Uptane::EcuMap ecu_map;
+  hardwareIds.emplace_back(hwid);
+  hardwareIds.emplace_back(hwid2);
+  ecu_map.insert({Uptane::EcuSerial("serial"), hwid});
+  ecu_map.insert({Uptane::EcuSerial("serial2"), hwid2});
+  Uptane::Target target1("abc", generateDirectorTarget("hash_good", 739, ecu_map));
+  Uptane::Target target2("abc", generateImageTarget("hash_good", 739, hardwareIds));
+  EXPECT_TRUE(target1.MatchTarget(target2));
+  EXPECT_TRUE(target2.MatchTarget(target1));
+}
+
+/* Reject inconsistent sets of multiple hardware IDs. */
+TEST(Target, MultipleHwIdMismatch) {
+  Uptane::HardwareIdentifier hwid("fake-test");
+  std::vector<Uptane::HardwareIdentifier> hardwareIds;
+  hardwareIds.emplace_back(hwid);
+  hardwareIds.emplace_back(Uptane::HardwareIdentifier("extra"));
+  Uptane::Target target1("abc", generateImageTarget("hash_good", 739, hardwareIds));
+  hardwareIds.emplace_back(Uptane::HardwareIdentifier("extra2"));
+  Uptane::Target target2("abc", generateImageTarget("hash_good", 739, hardwareIds));
+  EXPECT_FALSE(target1.MatchTarget(target2));
+  EXPECT_FALSE(target2.MatchTarget(target1));
+}
+
+/* Reject a missing hardware ID. */
+TEST(Target, MissingHwId) {
+  Uptane::HardwareIdentifier hwid("fake-test");
+  std::vector<Uptane::HardwareIdentifier> hardwareIds;
+  Uptane::EcuMap ecu_map;
+  hardwareIds.emplace_back(hwid);
+  ecu_map.insert({Uptane::EcuSerial("serial"), hwid});
+  Uptane::Target target1("abc", generateDirectorTarget("hash_good", 739, ecu_map));
+  hardwareIds.clear();
+  Uptane::Target target2("abc", generateImageTarget("hash_good", 739, hardwareIds));
+  EXPECT_FALSE(target1.MatchTarget(target2));
+  EXPECT_FALSE(target2.MatchTarget(target1));
+}
+
+/* Reject mismatched filenames. */
+TEST(Target, FilenameMismatch) {
+  Uptane::HardwareIdentifier hwid("fake-test");
+  std::vector<Uptane::HardwareIdentifier> hardwareIds;
+  Uptane::EcuMap ecu_map;
+  hardwareIds.emplace_back(hwid);
+  ecu_map.insert({Uptane::EcuSerial("serial"), hwid});
+  Uptane::Target target1("abc", generateDirectorTarget("hash_good", 739, ecu_map));
+  Uptane::Target target2("xyz", generateImageTarget("hash_good", 739, hardwareIds));
+  EXPECT_FALSE(target1.MatchTarget(target2));
+  EXPECT_FALSE(target2.MatchTarget(target1));
+}
+
+/* Reject mismatched lengths. */
+TEST(Target, LengthMismatch) {
+  Uptane::HardwareIdentifier hwid("fake-test");
+  std::vector<Uptane::HardwareIdentifier> hardwareIds;
+  Uptane::EcuMap ecu_map;
+  hardwareIds.emplace_back(hwid);
+  ecu_map.insert({Uptane::EcuSerial("serial"), hwid});
+  Uptane::Target target1("abc", generateDirectorTarget("hash_good", 739, ecu_map));
+  Uptane::Target target2("abc", generateImageTarget("hash_good", 1, hardwareIds));
+  EXPECT_FALSE(target1.MatchTarget(target2));
+  EXPECT_FALSE(target2.MatchTarget(target1));
+}
+
+/* Reject mismatched hardware IDs. */
+TEST(Target, HardwareIdMismatch) {
+  Uptane::HardwareIdentifier hwid("fake-test");
+  std::vector<Uptane::HardwareIdentifier> hardwareIds;
+  Uptane::EcuMap ecu_map;
+  hardwareIds.emplace_back(hwid);
+  ecu_map.insert({Uptane::EcuSerial("serial"), hwid});
+  Uptane::Target target1("abc", generateDirectorTarget("hash_good", 739, ecu_map));
+  hardwareIds[0] = Uptane::HardwareIdentifier("alt-test");
+  Uptane::Target target2("abc", generateImageTarget("hash_good", 739, hardwareIds));
+  EXPECT_FALSE(target1.MatchTarget(target2));
+  EXPECT_FALSE(target2.MatchTarget(target1));
+}
+
+/* Reject mismatched hashes. */
+TEST(Target, HashMismatch) {
+  Uptane::HardwareIdentifier hwid("fake-test");
+  std::vector<Uptane::HardwareIdentifier> hardwareIds;
+  Uptane::EcuMap ecu_map;
+  hardwareIds.emplace_back(hwid);
+  ecu_map.insert({Uptane::EcuSerial("serial"), hwid});
+  Uptane::Target target1("abc", generateDirectorTarget("hash_good", 739, ecu_map));
+  Uptane::Target target2("abc", generateImageTarget("hash_bad", 739, hardwareIds));
+  EXPECT_FALSE(target1.MatchTarget(target2));
+  EXPECT_FALSE(target2.MatchTarget(target1));
+}
+
+#ifndef __NO_MAIN__
+int main(int argc, char** argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  logger_set_threshold(boost::log::trivial::trace);
+  return RUN_ALL_TESTS();
+}
+#endif

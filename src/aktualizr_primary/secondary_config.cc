@@ -1,0 +1,145 @@
+#include <boost/filesystem.hpp>
+#include <fstream>
+#include <iostream>
+#include <unordered_map>
+
+#include <json/json.h>
+
+#include "logging/logging.h"
+#include "secondary_config.h"
+#include "utilities/utils.h"
+
+namespace Primary {
+
+constexpr const char* const IPSecondariesConfig::Type;
+
+SecondaryConfigParser::Configs SecondaryConfigParser::parse_config_file(const boost::filesystem::path& config_file) {
+  if (!boost::filesystem::exists(config_file)) {
+    throw std::invalid_argument("Specified config file doesn't exist: " + config_file.string());
+  }
+
+  auto cfg_file_ext = boost::filesystem::extension(config_file);
+  std::unique_ptr<SecondaryConfigParser> cfg_parser;
+
+  if (cfg_file_ext == ".json") {
+    cfg_parser = std_::make_unique<JsonConfigParser>(config_file);
+  } else {  // add your format of configuration file + implement SecondaryConfigParser specialization
+    throw std::invalid_argument("Unsupported type of config format: " + cfg_file_ext);
+  }
+
+  return cfg_parser->parse();
+}
+
+/*
+config file example
+
+{
+  "IP": {
+                "secondaries_wait_port": 9040,
+                "secondaries_wait_timeout": 20,
+                "secondaries": [
+                        {"addr": "127.0.0.1:9031", "verification_type": "Full"}
+                        {"addr": "127.0.0.1:9032", "verification_type": "Tuf"}
+                ]
+  },
+  "socketcan": {
+                "common-key": "common-value",
+                "secondaries": [
+                        {"key": "value", "key1": "value1"},
+                        {"key": "value", "key1": "value1"}
+                ]
+  }
+}
+
+
+*/
+
+JsonConfigParser::JsonConfigParser(const boost::filesystem::path& config_file) {
+  assert(boost::filesystem::exists(config_file));
+  std::ifstream json_file_stream(config_file.string());
+  std::string errs;
+
+  if (!Json::parseFromStream(Json::CharReaderBuilder(), json_file_stream, &root_, &errs)) {
+    throw std::invalid_argument("Failed to parse secondary config file: " + config_file.string() + ": " + errs);
+  }
+}
+
+SecondaryConfigParser::Configs JsonConfigParser::parse() {
+  Configs res_sec_cfg;
+
+  for (auto it = root_.begin(); it != root_.end(); ++it) {
+    std::string secondary_type = it.key().asString();
+
+    if (sec_cfg_factory_registry_.find(secondary_type) == sec_cfg_factory_registry_.end()) {
+      LOG_ERROR << "Unsupported type of secondary config was found: `" << secondary_type
+                << "`. Ignoring it and continuing with parsing of other secondary configs";
+    } else {
+      (sec_cfg_factory_registry_.at(secondary_type))(res_sec_cfg, *it);
+    }
+  }
+
+  return res_sec_cfg;
+}
+
+static std::pair<std::string, uint16_t> getIPAndPort(const std::string& addr) {
+  auto del_pos = addr.find_first_of(':');
+  if (del_pos == std::string::npos) {
+    throw std::invalid_argument("Incorrect address string, couldn't find port delimeter: " + addr);
+  }
+  std::string ip = addr.substr(0, del_pos);
+  uint16_t port = static_cast<uint16_t>(std::stoul(addr.substr(del_pos + 1)));
+
+  return std::make_pair(ip, port);
+}
+
+void JsonConfigParser::createIPSecondariesCfg(Configs& configs, const Json::Value& json_ip_sec_cfg) {
+  auto resultant_cfg = std::make_shared<IPSecondariesConfig>(
+      static_cast<uint16_t>(json_ip_sec_cfg[IPSecondariesConfig::PortField].asUInt()),
+      json_ip_sec_cfg[IPSecondariesConfig::TimeoutField].asInt());
+  auto secondaries = json_ip_sec_cfg[IPSecondariesConfig::SecondariesField];
+
+  LOG_INFO << "Found IP secondaries config: " << *resultant_cfg;
+
+  for (const auto& secondary : secondaries) {
+    auto addr = getIPAndPort(secondary[IPSecondaryConfig::AddrField].asString());
+    // Backwards compatibility: assume full verification if not specified.
+    VerificationType vtype = VerificationType::kFull;
+    if (secondary.isMember(IPSecondaryConfig::VerificationField)) {
+      vtype = Uptane::VerificationTypeFromString(secondary[IPSecondaryConfig::VerificationField].asString());
+    }
+    IPSecondaryConfig sec_cfg{addr.first, addr.second, vtype};
+
+    LOG_INFO << "   found IP secondary config: " << sec_cfg;
+    resultant_cfg->secondaries_cfg.push_back(sec_cfg);
+  }
+
+  configs.push_back(resultant_cfg);
+}
+
+void JsonConfigParser::createVirtualSecondariesCfg(Configs& configs, const Json::Value& json_virtual_sec_cfg) {
+  for (const auto& json_config : json_virtual_sec_cfg) {
+    auto virtual_config = std::make_shared<VirtualSecondaryConfig>(json_config);
+    configs.push_back(virtual_config);
+  }
+}
+
+#ifdef TORIZON
+void JsonConfigParser::createDockerComposeSecondariesCfg(Configs& configs,
+                                                         const Json::Value& json_docker_compose_sec_cfg) {
+  for (const auto& json_config : json_docker_compose_sec_cfg) {
+    auto docker_compose_config = std::make_shared<DockerComposeSecondaryConfig>(json_config);
+    configs.push_back(docker_compose_config);
+  }
+}
+#endif
+
+#ifdef BUILD_GENERIC_SECONDARY
+void JsonConfigParser::createTorizonGenericSecondariesCfg(Configs& configs, const Json::Value& json_torgen_sec_cfg) {
+  for (const auto& json_config : json_torgen_sec_cfg) {
+    auto torgen_config = std::make_shared<TorizonGenericSecondaryConfig>(json_config);
+    configs.push_back(torgen_config);
+  }
+}
+#endif
+
+}  // namespace Primary

@@ -1,0 +1,129 @@
+//  tag::evaluate-steps[]
+* *Use shared credential provisioning for your devices*
++
+With shared-credential provisioning, you don't have to worry about installing certificates on your devices.
+The OTA Connect server automatically does this for you. All you need to do is download a provisioning key that is unique to your account, and all your devices can share it.
+
+** xref:ota-client::generating-provisioning-credentials.adoc[Get a provisioning key]
++
+{nbsp}
+
+* *Use the standalone aktualizr client to test the OTA functionality*
++
+You don't need to do anything extra to use the standalone aktualizr client. It's actually part of our demo build configurations, so the aktualizr client is included in the disk image that you'll build.
++
+If you prefer to simulate an OTA-enabled device without building a disk image, you can install the aktualizr client on your development computer. In this case, however, you won't be able to try out OSTree functionality--the client will simply download and verify binaries, dropping them into a configurable location on your filesystem.
+
+** xref:ota-client::simulate-device-basic.adoc[Simulate a device without building a disk image]
++
+{nbsp}
+
+* *Build disk images using our demo recipes*
++
+We support a couple of demo boards "out of the box". You don't need to worry about complex build configurations at this stage. Just follow one of our quick start guides to learn how to build an OTA-enabled disk image.
+
+** xref:ota-client::build-raspberry.adoc[Build a Raspberry Pi image]
+** xref:ota-client::build-qemu.adoc[Build a QEMU/VirtualBox image]
+
+//  end::evaluate-steps[]
+
+//  tag::integrate-steps[]
+
+* *Set up different environments*
++
+When you first create an account on the https://connect.ota.here.com[OTA Connect Portal], you get a home xref:ota-web::environments-intro.adoc[environment]--where you can create and manage software update projects. You can also create up to 10 additional environments within your OTA Connect account. This helps because you don't want to mix up test software and production software.
++
+In a proper production workflow, you'll need separate environments to manage the different stages:
++
+. A developer environment.
+. A QA environment.
+. A production environment.
++
+In your OTA Connect account, you can easily switch between the different environments and also add your colleagues as members in each of the environments. For instructions on how to manage members, see the xref:ota-web::manage-members.adoc[related] section in the User Guide.
++
+Seperate environments provide you with a convenient way of separating your development, QA, and production resources.
+
+
+////
+COMMENTING OUT UNTIL ORGANIZATIONS STOPS BEING "ALPHA"
+* *Set up different organizations*
++
+In OTA Connect, all devices, software, and user accounts belong to an *organization*. Users can see all devices and software for their organization. However, you don't want to mix up test software and production software.
++
+In a proper production workflow, you'll need separate organizations to manage the different stages:
++
+. A developer organization such as "acme-dev".
+. A QA organization such as "acme-qa".
+. A production organization such as "acme-prod".
++
+A user can belong to multiple organizations, and it's easy to switch between them. This provides you with a convenient way of separating your development, QA and production resources.
+////
+
+* *Start using device-credential provisioning for your devices*
++
+The term *device-credential provisioning* refers to the process of installing or generating a unique X.509 certificate on each device _before_ adding it to your OTA Connect account, instead of having OTA Connect generate the certificate for each device after it registers.
++
+Although it's convenient to use shared-credential provisioning so that the OTA Connect server manages the whole process, using shared-credential provisioning means that a private key gets transmitted from the OTA Connect server to each vehicle. For automotive-grade security, most large fleet owners will want to use a TPM or other type of hardware security module, so that the vehicle's private key material never has to exist outside of the vehicle.
++
+In the initial integration phase, if you do not have the TPM/HSM ready to use, you can still start using device-credential provisioning by using a self-signed certificate and loading signed device certificates onto your test devices using our tooling and instructions.
+
+* *Use offline keys to sign software metadata*
++
+Strong, automotive-grade security using Uptane is one of the most important parts of OTA Connect. Uptane achieves its security benefits by using multiple different, interdependent roles and repositories to sign software, establish trust, and ensure other important security properties. For a truly secure Uptane deployment, the keys that are used to sign metadata should be kept offline--for example, on an external hardware security module like a https://www.yubico.com/[YubiKey]. To save you from the difficulties and complications of managing offline keys, new OTA Connect accounts start off by using online signing keys kept in secure storage using HashiCorp's https://www.vaultproject.io/[Vault], an industry-standard best practice. When you upload software and disk images to OTA Connect, the server generates and signs the associated metadata for you.
++
+During the integration phase, you should take the signing keys offline and rotate them. This puts you in complete control over your fleet's security--even if an attacker somehow compromised the entire OTA Connect infrastructure, they still wouldn't be able to install their software on your vehicles.
++
+For the integration phase, it's fine if you keep these keys on your development computer. Later, you'll want to keep these keys somewhere more secure.
+
+* *Start customizing the update client*
++
+Most production use cases will have unique requirements that aren't met by the stock aktualizr app. With libaktualizr, the C++ library used to build aktualizr, you can customize every step of the installation process.
++
+To provide you with some inspiration, we've created a very simple demo app that integrates libaktualizr, along with a Yocto layer to build it into your test board.
+
+//  end::integrate-steps[]
+
+//  tag::deploy-steps[]
+
+* *Set up full device-credential provisioning for your devices*
++
+At this point you should have a solid understanding of the provisioning process. For production, you should generate your own root of trust for your vehicle fleet, and set up an infrastructure for signing vehicle certificates.
++
+Ideally, you should also be using a TPM or other hardware security module for generation and storage of private keys on the vehicle, and have the HSM integrated with libaktualizr for vehicle registration/provisioning.
+
+* *Create offline keys for production to sign software metadata*
++
+This step is not that different from the equivalent step during the integration phase:
++
+** During the integration phase, you generated a set of private keys with your *development* credentials.
+** This time, you should generate another set with your *production* credentials.
++
+You should keep each of these keys on a secure storage medium such as a link:https://www.yubico.com/[YubiKey]. There are three different types of key, each used for a different role, and each role can be configured to require a certain threshold of keys.
+* One role is for signing software metadata, marking it as valid for distribution.
+* One role acts as the root of trust for the main software repository.
+* One role acts as the root of trust for telling vehicles exactly what software they should install, and when.
++
+For each role, you only need to get the key out of storage when the role has to act. That means the first key is only used when new software is released to production, and the two root-of-trust keys are only used in case of a breach, or to revoke a signing key that may have been lost or stolen.
+
+* *Integrate libaktualizr with the client software on your board*
++
+Once you understand how the libaktualizr demo application works, you'll want to build a fully-functional integration with your board's software and the other ECUs in the vehicle, if desired. Some examples of things you can do:
+* Hook into an HMI system to ask for user confirmation before installing an update
+* Check for safety conditions in the vehicle before starting an update
+* Only download large updates when the vehicle is connected to WiFi, or at off-peak times
+* Pass an update for a Secondary ECU off to a custom UDS flashing tool
+
+* *Build and cross-deploy your disk images to your production account*
++
+After you've finished integration and development, you'll need to move disk images from one account to another. For example, you might want to send a development build that you’re happy with to the QA team, or send that build to the deployment team once it’s passed QA.
+
+//  end::deploy-steps[]
+
+//  tag::firstbuild-nextstep[]
+[TIP]
+====
+Once you've built your first image, try adding some new software and xref:ota-client::pushing-updates.adoc[push your update to the OTA Connect server].
+====
+//MC: full versioned xref because snippet is displayed in two components.
+
+//  end::firstbuild-nextstep[]

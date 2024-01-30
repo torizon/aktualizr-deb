@@ -1,0 +1,113 @@
+= Recommended client configurations
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+Before you start developing or deploying to production, you should check that your configuration file has appropriate settings for your use case.
+
+The configuration file and exact parameters depend on how you use OTA Connect:
+
+* If you're building disk images that contain aktualizr or libaktualizr, you need to update your *build configuration*.
+* If you're using a standalone version of aktualizr that you've installed locally, you need to update the *client configuration*.
+ 
+[{tabs}]
+====
+Build configuration::
++
+--
+include::partial$config-descriptions.adoc[tags=buildconfig-hint]
+
+.Recommended build configuration for development
+[cols="2a,2a",options="header"]
+|====================
+|Configuration  | Description
+|
+`SOTA_POLLING_SEC = "10"`
+
+`IMAGE_INSTALL_append = " aktualizr-polling-interval "`
+| 
+include::partial$config-descriptions.adoc[tags=pollconfig-dev]
+|
+`IMAGE_INSTALL_append = " aktualizr-auto-reboot "`
+| 
+include::partial$config-descriptions.adoc[tags=autorebootconfig-dev]
+|
+`IMAGE_INSTALL_append += " systemd-journald-persistent"`
+|
+To troubleshoot problems that you might encounter during development, we recommend that you enable persistent `systemd` logging. This setting is enabled by default for newly configured environments (see link:https://github.com/advancedtelematic/meta-updater/tree/master/conf/local.conf.systemd.append[local.conf.systemd.append]).
+|
+`IMAGE_INSTALL_append += " aktualizr-log-debug"`
+|
+We also recommending running with debug logging enabled in aktualizr during development.
+
+|====================
+
+.Recommended build configuration for production
+[cols="2a,2a",options="header"]
+|====================
+|Configuration  | Description
+|
+`SOTA_POLLING_SEC = "84600"` 
+
+`IMAGE_INSTALL_append = " aktualizr-polling-interval "`
+| 
+include::partial$config-descriptions.adoc[tags=pollconfig-prod]
+|
+Remove `aktualizr-auto-reboot` from the `IMAGE_INSTALL_append` parameter.
+| 
+include::partial$config-descriptions.adoc[tags=autorebootconfig-prod]
+|
+Remove `systemd-journald-persistent` from the `IMAGE_INSTALL_append` parameter.
+|
+If you followed our recommendation to enable log persistence for development, you may want to disable it for production to save space on your device.
+|
+Remove `aktualizr-log-debug` from the `IMAGE_INSTALL_append` parameter.
+|
+If you followed our recommendation to enable debug-level logging for development, you may want to disable it for production to reduce file writes.
+
+
+|====================
+
+--
+
+Client configuration::
++
+--
+include::partial$config-descriptions.adoc[tags=clientconfig-hint]
+
+.Recommended client configuration for development
+[cols="2a,2a",options="header"]
+|====================
+|Configuration  | Description
+|
+`polling_sec = "10"`
+| 
+include::partial$config-descriptions.adoc[tags=pollconfig-dev]
+|
+`force_install_completion = "true"`
+| 
+include::partial$config-descriptions.adoc[tags=autorebootconfig-dev]
+
+|====================
+
+.Recommended client configuration for production
+[cols="2a,2a",options="header"]
+|====================
+|Configuration  | Description
+|
+`polling_sec = "84600"`
+| 
+include::partial$config-descriptions.adoc[tags=pollconfig-prod]
+|
+`force_install_completion = "false"`
+| 
+include::partial$config-descriptions.adoc[tags=autorebootconfig-prod]
+
+|====================
+
+--
+====

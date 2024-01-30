@@ -1,0 +1,52 @@
+= Build a QEMU image
+:page-partial:
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+include::ota-client::partial$aktualizr-version.adoc[]
+
+:page-layout: page
+:page-categories: [quickstarts]
+:page-date: 2017-05-16 15:49:22
+:page-order: 3
+:icons: font
+:toc: macro
+:device: QEMU VM
+:machine: qemux86-64
+:meta-env: qemux86-64
+
+{product-name} lets you easily manage OTA updates to embedded devices running custom-built Yocto images. This is a guide for building a simple Yocto image that you can run in QEMU. This is a good way to get started if you don't know yet what hardware your project will use, or if you just want to try out the features of {product-name} without worrying about physical devices.
+
+include::ota-client::page$build-raspberry.adoc[tags=prereqs;env-setup;config;bitbake]
+
+== Run the built image with QEMU
+
+The build process creates disk images as an artefact. You can then directly run them with QEMU. (If you don't already have it installed, install it with `apt install qemu` or similar.) The meta-updater layer contains a helper script to launch the images:
+
+----
+../meta-updater/scripts/run-qemu-ota [image name] [mac address]
+----
+
+Both arguments are optional; image name defaults to `core-image-minimal`, and if a mac address isn't specified, a random one is generated.
+
+TIP: Depending on your build, the `meta-updater` directory might be in a slightly different location. For example, if you're building an xref:build-agl.adoc[AGL image], the meta-updater layer would be at `../external/meta-updater`.
+
+.Persistent storage
+****
+By default, QEMU will run your image in snapshot mode, *discarding any changes you made* to the disk image as soon as it exits. If you want to have a persistent VM, you need to create an link:https://wiki.archlinux.org/index.php/QEMU#Overlay_storage_images[overlay storage image] in qcow2 format. The helper script can also manage this for you, making it easy to create an emulated fleet of devices:
+
+----
+../meta-updater/scripts/run-qemu-ota --overlay mydevice.cow
+----
+
+If the specified overlay image doesn't yet exist, it will be created first, or launched directly if it does exist.
+****
+
+You should see your new device appear in {product-name-short} shortly after it boots. It will generate a random name for itself during autoprovisioning; you can change the name later.
+
+include::partial$recommended-steps.adoc[tags=firstbuild-nextstep]

@@ -1,0 +1,19 @@
+
+{
+	"signatures" : 
+	[
+		
+		{
+			"keyid" : "af563026fc4f99af2f0d956c9c6f096d4a64109f8e9cf4d2136a0ee58adfe1d1",
+			"method" : "rsassa-pss-sha256",
+			"sig" : "Cthl29QLv00jOiNngOtrNLO/94oZvzi9LM5+8V3oGXyNIAHfLEtx1Ap5Y5QHXm+jbItkurYeKvgBlNy3tzsH3j4F1poF5Qg2t7kN/PLgueR51Ri3ez9iW8/HGIM6PFtnJ1q/q9j9+1+FkiEJ6CqIGrr0yKq3X8/mX9JBA+G4TyA/YipVZ+fdUNYphXk5INMpLCT9sXN3CsFU3SGJyF1KTm0pmo740OBYkSDL8XAK8NcMVeOIbzSwDaz1eARLPc6jZj+4Plj2OIUJ8Of4IJ5xQkTpQauzvKAwOhXQJGZtdFWRNF8BnawkhFx9lqrsS4BBj20HlnBTSw/r3FW72iU45A=="
+		}
+	],
+	"signed" : 
+	{
+		"_type" : "Targets",
+		"expires" : "2018-06-10T22:09:41Z",
+		"targets" : {},
+		"version" : 0
+	}
+}
