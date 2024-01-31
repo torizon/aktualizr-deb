@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Carlos Henrique Lima Melara <carlos.melara@toradex.com>
 Rules-Requires-Root: no
 Build-Depends:
- debhelper-compat (= 13),
+ debhelper-compat (= 12),
  cmake,
  asn1c,
  cmake,
