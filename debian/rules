@@ -7,12 +7,13 @@
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
-	    -DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH) \
-	    -DWARNING_AS_ERROR=OFF \
+	    -DAKTUALIZR_VERSION=1.0+git20240124.72b0ec5 \
+	    -DBUILD_OFFLINE_UPDATES=OFF \
 	    -DBUILD_OSTREE=OFF \
 	    -DBUILD_SOTA_TOOLS=OFF \
-	    -DAKTUALIZR_VERSION=1.0+git20240124.72b0ec5 \
-	    -DBUILD_TESTING=OFF
+	    -DBUILD_TESTING=OFF \
+	    -DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH) \
+	    -DWARNING_AS_ERROR=OFF
 
 override_dh_auto_install:
 	dh_auto_install --destdir=debian/tmp
