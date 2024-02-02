@@ -1,0 +1,19 @@
+name: Build Debian Package
+
+on: push
+
+jobs:
+  build-debs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: leonheldattoradex/build-deb-action@v1.7.1
+        env:
+          DEB_BUILD_OPTIONS: noautodbgsym
+        with:
+          buildpackage-opts: --build=binary --no-sign
+          host-arch: amd64
+          apt-opts: --install-recommends
+          extra-build-deps: ca-certificates
+          docker-image: ubuntu:20.04
+
