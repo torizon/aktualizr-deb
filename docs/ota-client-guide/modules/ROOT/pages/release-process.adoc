@@ -1,0 +1,174 @@
+= Release process
+:toc: macro
+:toc-title:
+:sectnums:
+:aktualizr-github-url: https://github.com/advancedtelematic/aktualizr/tree/master
+
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+To create a new link:https://github.com/advancedtelematic/aktualizr/releases[release of aktualizr and garage-deploy], there are several discrete steps to follow:
+
+ifdef::env-github[]
+toc::[]
+endif::[]
+
+== Update the changelog and other docs
+
+This is normally a good time to update the link:https://github.com/advancedtelematic/aktualizr/blob/master/CHANGELOG.md[changelog]. Ideally, the changelog should be updated with the new release number before creating the release so that the packaged source code includes the correct information about the release. The easiest way to check the changelog is to review all PRs merged to master since the last release was made and to verify that any important changes that impact the user experience are reflected in the changelog.
+
+There are a few additional documents that should be updated to refer to the new release:
+
+* The link:https://github.com/advancedtelematic/aktualizr/blob/master/docs/README.adoc#reference-documentation[docs README] contains a table with links to the doxygen docs for each release.
+* Several pages contains references to the latest release of aktualizr and/or garage-deploy via a variable set in a https://github.com/advancedtelematic/aktualizr/blob/master/docs/ota-client-guide/modules/ROOT/pages/_partials/aktualizr-version.adoc[doc snippet] created for this purpose.
+
+This is also a good time to review the docs in general and to consider whether any changes in this release might have affected the docs.
+
+== Pull in any new changes from the current docs branch
+
+The docs published as https://docs.ota.here.com/ota-client/latest/index.html[latest] in the OTA Connect Developer Guide are built from the most recent release's docs branch (`\{version}-docs`). There will very likely be changes from there that have not been pulled into master yet. Open up a PR to merge the previous release's docs into master, resolving any merge conflicts as needed. Once that PR is merged, you can move on to the next step.
+
+The cleanest way to do this (especially if there were multiple changes to the docs branch) is to merge the docs branch locally and then rebase on master to remove the merge commits:
+
+----
+git merge origin/2020.2-docs
+git rebase origin/master
+----
+
+== Create a new tag
+
+Releases are built automatically by gitlab from annotated tags of the form `major.minor`, where `major` and `minor` are numbers. We normally set `major` to the current year and `minor` to an incrementing number beginning at 1.
+
+To create a release, checkout the revision you want to bless, then:
+
+----
+git tag -as <tag>   # e.g. git tag -a 2018.4
+git push github <tag>
+----
+
+Gitlab will build this tag and automatically create a release for it on github.
+
+=== Updating an already-released tag
+
+Generally, you should not update a tag after it has already been pushed to github. This is asking for confusion and problems down the line. However, if something goes wrong in creating the release from the tag, you may need to do this anyway. Note that you will need to manually delete the release on github if it has been created already. (Otherwise, the release's files will not get updated.) You will then need to either retry the specific github-release step or re-trigger the entire pipeline (which can be done by re-pushing the tag to github).
+
+== Create a new docs branch
+
+Create (and push to github) a new branch with the commit you just tagged as the parent:
+
+----
+git checkout -b <tag>-docs # e.g. git checkout -b 2019.63-docs
+git push github --set-upstream <tag>-docs
+----
+
+=== Update version strings in antora.yml for old and new branch
+
+The versioning of the docs is controlled by the antora.yml file located at `docs/ota-client-guide/antora.yml`. The latest version should have its version set to *latest*, and its display_version set to *<version> (latest)*. That will initially make it conflict with the version in the previous docs branch; you can't have two different branches with the same version set. To resolve this, fix the version number in `antora.yml` on the previous branch--from *latest* to its actual version number.
+
+So, if you're releasing version 2020.4, your `antora.yml` on the two most recent branches should look like this:
+
+[{tabs}]
+====
+2020.4-docs::
++
+--
+----
+name: ota-client
+title: OTA Connect Developer Guide
+version: latest
+display_version: 2020.4 (latest)
+nav:
+- modules/ROOT/nav.adoc
+----
+--
+
+2020.3-docs::
++
+--
+----
+name: ota-client
+title: OTA Connect Developer Guide
+version: '2020.3'
+display_version: '2020.3'
+nav:
+- modules/ROOT/nav.adoc
+----
+--
+====
+
+
+== Update doxygen on github
+
+You will need to update the link:https://advancedtelematic.github.io/aktualizr/index.html[doxygen documentation] both for the new release and master.
+
+This step is now done automatically through a GitLab pipeline but you can refer to the link:{aktualizr-github-url}/scripts/publish_github_docs.sh[automation script] for the exact steps, in case it needs to be done manually.
+
+The pages should be updated a few minutes after a successful release pipeline execution.
+
+== Update the description of the github release
+
+Once the release is ready on github, it should be edited to include a link to the changelog and doxygen documentation for that particular release. You can use a previous release as a model of how to format these links.
+
+== Update the homebrew recipe for aktualizr
+
+The https://github.com/advancedtelematic/homebrew-otaconnect/blob/master/aktualizr.rb[homebrew aktualizr formula] should be updated with the new release.
+
+There is the gitlab CI job that will automatically update the formula, build a bottle, and upload the bottle to the github release page when a new release is created.
+
+Also, this job will make a pull request to update the formula in the tap. The pull request should be listed https://github.com/advancedtelematic/homebrew-otaconnect/pulls/[here]. You should merge it to a master branch of the https://github.com/advancedtelematic/homebrew-otaconnect/[homebrew-otaconnect repo], so mac users can install the latest aktualizr release.
+
+=== Fallback: manually build a bottle and update the homebrew recipe
+
+If the CI job failed for some reason, you might need to manually create the new bottle and edit the recipe. Here are the steps to follow (you'll need a Mac with homebrew installed):
+
+. Clone a repo/tap that contains the aktualizr recipe unless it has already been done
++
+----
+brew tap advancedtelematic/otaconnect
+----
+. Edit the recipe on your local system with `brew edit aktualizr`, and replace the old version and revision with the new one.
+. Build it, and then bottle it:
++
+----
+brew uninstall -f aktualizr
+brew install -v --build-bottle aktualizr
+brew bottle --json --no-rebuild --force-core-tap --root-url=${RELEASE_BASE_URL}/${VERSION} aktualizr
+where RELEASE_BASE_URL=https://github.com/advancedtelematic/aktualizr/releases/download and VERSION is the new version tag
+----
++
+This will create a bottle file named `+aktualizr--VERSION.mojave.bottle.tar.gz+`, and output a block of Ruby code that looks something like this:
++
+----
+  bottle do
+    cellar :any
+    sha256 "391bc242685d86fd4fc69d90d98e10a464e6feebca943d3f48f848615c898085" => :mojave
+  end
+----
+. Update the recipe with the new bottle block
++
+----
+brew bottle --merge --write --no-commit ./aktualizr--${VERSION}.mojave.bottle.json
+----
+. Rename the file, removing one of the dashes. I don't know why the generated filename is always wrong, but it is.
++
+----
+mv aktualizr--${VERSION}.mojave.bottle.tar.gz aktualizr-${VERSION}.mojave.bottle.tar.gz
+----
+. Add the renamed bottle file as an artifact to the release on the https://github.com/advancedtelematic/aktualizr/releases[aktualizr releases page].
+. Test the recipe locally, including installing from the bottle: `brew reinstall --force-bottle aktualizr`.
+. Open a PR on the https://github.com/advancedtelematic/homebrew-otaconnect[homebrew-otaconnect] repo to update the recipe with all your changes.
+
+== Verify the released Debian packages
+
+Newly created releases automatically trigger an OTF pipeline in gitlab. Currently, you still need to manually verify that the pipeline actually succeeded.
+
+== Update meta-updater
+
+The version of aktualizr used by link:https://github.com/advancedtelematic/meta-updater/[meta-updater] should be updated to match the new release. First, open a PR against dunfell that updates aktualizr to the same commit used in the newly released tag. (Historically, we started with master, but we now skip straight to dunfell.) This is also a good time to update the aktualizr recipe to pull the latest version of link:https://ats-tuf-cli-releases.s3-eu-central-1.amazonaws.com/index.html[garage-sign].
+
+Once that PR has passed oe-selftest, successfully passed review, and gotten merged, you should then backport that change, along with anything else relevant since the last backport was done, to the other xref:yocto-release-branches.adoc[currently supported release branches]. Note that while master is allowed to use arbitrary recent version of aktualizr, the release branches should only use released versions of aktualizr.

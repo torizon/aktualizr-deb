@@ -1,0 +1,292 @@
+:toc: macro
+:toc-title:
+
+https://opensource.org/licenses/MPL-2.0[image:https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg[License: MPL 2.0]] https://app.codecov.io/gh/uptane/aktualizr[image:https://codecov.io/gh/uptane/aktualizr/branch/master/graph/badge.svg[codecov]] https://bestpractices.coreinfrastructure.org/projects/674[image:https://bestpractices.coreinfrastructure.org/projects/674/badge[OpenSSF Best Practices]] https://github.com/RichardLitt/standard-readme[image:https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat[standard-readme compliant]]
+
+
+[discrete]
+= aktualizr
+
+This is a fork of https://github.com/uptane/aktualizr[uptane/aktualizr] maintained by Toradex. This fork is employed by our OE/Yocto build of TorizonCore (our OS for embedded systems). As such, customers are not generally required to concern themselves with the existence of this fork unless they want to know more about the changes made by Toradex to support software updates in TorizonCore.
+
+The changes by Toradex include:
+
+* Implementation of **offline-updates**: this is an initial attempt to support offline-updates as described in https://github.com/uptane/pures/blob/main/pure2.md[pure-2]; currently aktualizr must be configured to operate either in online or in offline mode, but there are plans to support both modes simultaneously in the future.
+* Implementation of a **docker-compose secondary**: a virtual secondary responsible for application updates in TorizonCore where applications are implemented as Docker containers and managed via docker-compose.
+* Implementation of a **generic secondary**: another virtual secondary allowing all the package (target) installation logic to be implemented outside of aktualizr; this is currently used by Toradex to implement bootloader updates, for example.
+
+Work by Toradex is done in the following branches:
+
+* toradex-master: this is the main branch for use with kirkstone (TorizonCore 6.x.y).
+* toradex-develop: this is the development branch for use with kirkstone (TorizonCore 6.x.y); new development is done here and merged into toradex-master whenever they need to be available on nightly builds.
+* toradex-dunfell-5.x.y: this is the maintenance branch for use with dunfell (TorizonCore 5.x.y); changes in aktualizr/libatualizr will be back-ported to this branch; also, the now deprecated project aktualizr-torizon will refer to commits on this branch (from its master branch).
+
+The original documentation from the upstream project follows.
+
+'''
+
+====
+C++ implementation of https://uptane.github.io[Uptane] OTA update client.
+====
+
+The client is intended to be installed on devices that wish to receive OTA updates from an Uptane-compatible OTA server such as https://connect.ota.here.com/[HERE OTA Connect]. It is most commonly built by using the https://github.com/uptane/meta-updater[meta-updater] layer in a Yocto environment. You can use aktualizr as a stand-alone system tool or you can integrate libaktualizr into a larger project.
+
+The client is responsible for:
+
+* Communicating with the OTA server
+* Authenticating using locally available device and user credentials
+* Reporting current software and hardware configuration to the server
+* Checking for any available updates for the device
+* Downloading any available updates
+* Installing the updates on the system, or notifying other services of the availability of the downloaded file
+* Receiving or generating installation reports (success or failure) for attempts to install received software
+* Submitting installation reports to the server
+
+The client maintains the integrity and confidentiality of the OTA update in transit, communicating with the server over a TLS link. The client can run either as a system service, periodically checking for updates, or can by triggered by other system interactions (for example on user request, or on receipt of a wake-up message from the OTA server).
+
+[discrete]
+== Table of Contents
+
+toc::[]
+
+== Security
+
+This client is aligned with the https://uptane.github.io[Uptane] security framework for software updates. Full details and documentation can be found on their site.
+
+== Installation
+
+=== Dependencies
+
+To install the minimal requirements on Debian/Ubuntu, run this:
+
+----
+sudo apt install asn1c build-essential cmake curl libarchive-dev libboost-dev libboost-filesystem-dev libboost-log-dev libboost-program-options-dev libcurl4-openssl-dev libpthread-stubs0-dev libsodium-dev libsqlite3-dev libssl-dev python3
+----
+
+The default versions packaged in recent Debian/Ubuntu releases are generally new enough to be compatible. If you are using older releases or a different variety of Linux, there are a few known minimum versions:
+
+* cmake (>= 3.5)
+* curl (>= 7.47)
+* openssl (>= 1.0.2)
+* libboost-* (>= 1.58.0)
+* libcurl4-openssl-dev (>= 7.47)
+* libpthread-stubs0-dev (>= 0.3)
+
+Additional packages are used for non-essential components:
+
+* To build the test suite, you will need `net-tools python3-dev python3-openssl python3-venv sqlite3 valgrind`.
+* To run the linting tools, you will need `clang clang-format-11 clang-tidy-11`.
+* To build additional documentation, you will need `doxygen graphviz`.
+* To build with code coverage, you will need `lcov`.
+
+Some features also require additional packages:
+
+* For OSTree support, you will need `libostree-dev` (>= 2017.7).
+* For PKCS#11 support, you will need `libp11-3 libp11-dev`.
+* For fault injection, you will need `fiu-utils libfiu-dev`.
+
+==== Mac support
+
+You can install the latest release of aktualizr on MacOS (mostly useful for trying out a SOTA server with a <<fake-device,fake device>>) using https://brew.sh[homebrew]:
+
+----
+brew tap advancedtelematic/otaconnect
+brew install aktualizr
+----
+
+You can build and install the latest development version of aktualizr on MacOS (current head of the development branch):
+----
+brew tap advancedtelematic/otaconnect
+brew install --HEAD aktualizr
+----
+
+If any of the previous release versions of aktualizr has been installed before make sure you `unlink` it prior to installing the HEAD version:
+----
+brew unlink aktualizr
+brew install --HEAD aktualizr
+----
+
+You can switch back to the release version by unlinking and installing again:
+----
+brew unlink aktualizr
+brew install aktualizr
+----
+
+You can also build it yourself, with basic dependencies from homebrew. You can install the necessary dependencies as follows:
+
+----
+brew install asn1c boost cmake libarchive libsodium pkgconfig python3 openssl@1.1
+----
+
+and run the following from the aktualizr project directory:
+----
+export CXXFLAGS=-w
+cmake -S . -B build -DBoost_USE_MULTITHREADED=ON
+cmake --build build --target all -- -j8
+
+./build/src/aktualizr_primary/aktualizr --version
+----
+
+If you also want to compile the SOTA tools:
+
+----
+brew install gettext && brew unlink gettext && brew link --force gettext
+----
+
+and run cmake with `-DBUILD_SOTA_TOOLS=ON`.
+
+=== Building
+
+This project uses *git submodules*. To checkout the code:
+
+----
+git clone --recursive https://github.com/uptane/aktualizr
+cd aktualizr
+----
+
+If you had an old checkout, forgot to include `--recursive` or need to update the submodules, run:
+
+----
+git submodule update --init --recursive
+----
+
+`aktualizr` is built using CMake. To setup your `build` directory:
+
+----
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+----
+
+You can then build the project from the `build` directory using Make:
+
+----
+make
+----
+
+You can also create a link:docs/ota-client-guide/modules/ROOT/pages/deb-package-install.adoc[debian package]:
+
+----
+make package
+----
+
+To use CMake's link:https://ninja-build.org/[Ninja] backend, add `-G Ninja` to the first CMake invocation. It has the advantage of running all targets in parallel by default and is recommended for local development.
+
+=== Running tests
+
+Before checking in code, it must pass the following tests (along with their corresponding build targets):
+
+- compilation of the main targets and tests without warning: `make` and `make build_tests`
+- validation against the project's automatic formatting conventions: `make check-format` to run the check, `make format` to apply the transformation automatically
+- absence of clang-tidy warning: `make clang-tidy`
+- full test suite run: `make check` (test build included), `make test` (only run the tests)
+
+The `qa` target includes all of these checks, including auto-formatting:
+
+----
+make qa
+----
+
+Note that, by default, the compilation and tests run in sequence and the output of failing tests is suppressed. To run in parallel, for example with eight threads, and print the output of failing tests, run this:
+
+----
+CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=8 make -j8 qa
+----
+
+Some tests require additional setups, such as code coverage, HSM emulation or link:docs/ota-client-guide/modules/ROOT/pages/provisioning-methods-and-credentialszip.adoc[provisioning credentials]. The exact reference about these steps is the link:scripts/test.sh[main test script] used for CI. It is parametrized by a list of environment variables and is used by our CI environments. To use it, run it in the project's root directory:
+
+----
+./scripts/test.sh
+----
+
+Note that it will run CMake itself in a dedicated build directory.
+
+To get a list of the common environment variables and their corresponding system requirements, have a look at the link:ci/gitlab/.gitlab-ci.yml[Gitlab CI configuration] and the project's link:docker/[Dockerfiles].
+
+
+=== Tags
+
+Generate tags:
+
+----
+make tags
+----
+
+=== Building with Docker
+
+Several Dockerfiles are provided to support building and testing the application without dependencies on your
+local environment.
+
+If you have a working docker client and docker server running on your machine, you can build and run a docker
+image on the default environment with:
+
+----
+./scripts/run_docker_test.sh Dockerfile
+----
+
+It will start a shell session inside the container, running as the same UID/GID as on the host system, with
+the current directory mounted as a docker volume. Any local code changes are then immediately in effect
+inside the container and user/group permissions are compatible in the two environments.
+
+Inside the container, the test suite with coverage can be run with:
+
+----
+TEST_WITH_COVERAGE=1 TEST_WITH_P11=1 TEST_WITH_STATICTESTS=1 ./scripts/test.sh
+----
+
+(see the content of link:ci/gitlab/.gitlab-ci.yml[] and link:scripts/test.sh[] for more testing options)
+
+Alternatively, link:scripts/run_docker_test.sh[] can directly run the test script:
+
+----
+./scripts/run_docker_test.sh Dockerfile \
+                            -eTEST_WITH_COVERAGE=1 \
+                            -eTEST_WITH_P11=1 \
+                            -eTEST_WITH_STATICTESTS=1 \
+                            -- ./scripts/test.sh
+----
+
+== Usage
+
+=== Configuration
+
+To run the aktualizr client, you will need to provide a toml-formatted configuration file using the command line option `-c` or `--config`:
+
+----
+aktualizr -c <path/configfile>
+----
+
+Additional command line options can be found link:./src/aktualizr_primary/main.cc[in the code] or by running `aktualizr --help`. More details on configuring aktualizr can be found in link:docs/ota-client-guide/modules/ROOT/pages/aktualizr-config-options.adoc[]. If you are using https://github.com/advancedtelematic/meta-updater[meta-updater], more information about configuring aktualizr in that environment can be found there.
+
+[#fake-device]
+=== Running a "fake" device
+
+Aktualizr is generally intended to run on embedded devices, but you may find it convenient to run it on your local system for development or testing. To get a binary you can run locally, you can:
+
+* follow the <<building,build instructions>>,
+* install a Ubuntu packages from the https://github.com/advancedtelematic/aktualizr/releases[Releases page], or
+* install through <<mac-support,Homebrew on MacOS>>
+
+Some more detailed instructions on how to configure a fake device can be found on https://docs.ota.here.com/quickstarts/install-a-client-locally-with-fake-secondaries.html[the OTA Connect docs site].
+
+=== Provisioning
+
+If you intend to use aktualizr to authenticate with a server, you will need some form of provisioning. Aktualizr currently supports provisioning with shared credentials or with device credentials. Device credential provisioning supports using an HSM to store private keys. The differences and details are explained in link:docs/ota-client-guide/modules/ROOT/pages/client-provisioning-methods.adoc[] and link:docs/ota-client-guide/modules/ROOT/pages/enable-device-cred-provisioning.adoc[]. You can learn more about the credentials files used to support provisioning in link:docs/ota-client-guide/modules/ROOT/pages/provisioning-methods-and-credentialszip.adoc[].
+
+== Changelog
+
+The changelog is available in link:CHANGELOG.md[].
+
+== Maintainers
+
+This code is maintained by the OTA team at https://www.here.com/products/automotive/ota-technology[HERE Technologies]. If you have questions about the project, please reach us through Github issues for this repository or email us at otaconnect.support@here.com.
+
+== Contribute
+
+Complete contribution guidelines can be found in link:CONTRIBUTING.md[].
+
+== License
+
+This code is licensed under the link:LICENSE[Mozilla Public License 2.0], a copy of which can be found in this repository. All code is copyright HERE Europe B.V., 2016-2020.
+
+We require that contributors accept the terms of Linux Foundation's link:https://developercertificate.org/[Developer Certificate of Origin]. Specific instructions can be found in link:CONTRIBUTING.md[].

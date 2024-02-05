@@ -1,0 +1,72 @@
+= Developer Tools
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+
+Before we walk you through the basic workflow of an OTA update, it would be helpful to understand the tools that are involved at each stage.
+
+The following list contains an explanation of the tools that we'll reference in the following topics:
+
+.Developer tools
+[width="100%",cols="1,3a", options="header"]
+|====================
+| Name | Description
+| *Aktualizr*  | Aktualizr is the official OTA Connect client. You use it  to interact with the OTA Connect server and install updates on your device.
+
+You can use it to easily evaluate OTA Connect functionality. By default, it's included in our demo build configurations. That means it's automatically installed on the demo disk images that you'll build.
+
+[NOTE]
+====
+__Related Tool__: *libaktualizr*
+
+This is the C++ library that powers aktualizr. Aktualizr is actually a fairly thin wrapper around this library.
+
+You can use it to customize the software update process for your particular device or vehicle--for example, checking for necessary install conditions, implementing complex rollback logic, or integrating with other systems for flashing updates.
+
+Later in this guide, we show you xref:libaktualizr-why-use.adoc[how to use libaktualizr].
+====
+
+| *Yocto* | Yocto is an open source toolkit that you can use to build Linux-based disk images for almost any embedded device. It uses the concept of "recipes" to build disk images for different hardware architectures.
+
+You'll be using the common Yocto command `bitbake` to build disk images. You can start with our demo recipes, then make your own recipes.
+
+[NOTE]
+====
+__Related Tool__: *meta-updater*
+
+The meta-updater Yocto layer contains "recipes" related to software updating. Yocto uses the concept of *layers* to bundle together recipes that are tightly coupled, or organized around a theme. Adding the meta-updater layer to a Yocto build makes aktualizr and OSTree available, and adds amendments to a number of other recipes to make sure they work well with aktualizr.
+
+====
+
+Later in this guide, we go into xref:yocto.adoc[more detail about how Yocto works].
+
+| *OSTree* |  OSTree is a tool for managing Linux filesystems, and delivers atomic updates with rollback capability and built-in delta support. OSTree has several advantages over traditional dual-bank systems, but the most important one is that it minimizes data usage, both in transit and in storage, by sharing files with the same contents across file system deployments.
+
+You probably won't have to use the OSTree CLI often, but it's handy for troubleshooting build issues.
+
+We also provide a more in-depth xref:yocto.adoc[explanation of OSTree] later in this guide.
+
+| *Garage Deploy* |
+You use our `garage-deploy` tool to move OSTree disk images from one account to another--for example, to send a development build to the QA team, or to send a release candidate to the deployment team.
+
+For more information on using `garage-deploy`, see the topic xref:cross-deploy-images.adoc[transfer software to a different repository].
+
+[NOTE]
+====
+__Related Tool__: *Garage Sign*
+
+This tool is actually bundled with the `garage-deploy` tool, but it serves a separate purpose.
+
+You use the `garage-sign` tool to sign metadata about your software, and to manage your software signing keys and root of trust. When you start using OTA Connect, we generate a root of trust and a signing key for you, and automatically sign software you upload. Later on, you can use `garage-sign` to rotate those keys, taking them completely offline for increased security.
+
+For more information on using `garage-sign` to manage keys, see the topic "xref:rotating-signing-keys.adoc[Manage keys for software metadata]".
+
+====
+
+| *OTA Connect Portal* | The OTA Connect portal isn't strictly a developer tool, but you'll need it to download a provisioning key to include in your disk images. It's a web application that you use to trigger updates and push software to your devices. You can access the portal under the following URL: https://connect.ota.here.com
+|====================

@@ -1,0 +1,49 @@
+= OTA Connect Developer Guide
+
+The `ota-client-guide` subdirectory contains the source of our **OTA Connect Developer Guide** which is published to our https://docs.ota.here.com[documentation portal].
+
+You can also read the source files for this guide. To read this guide locally or in GitHub, start with the xref:ota-client-guide/modules/ROOT/nav.adoc[table of contents].
+
+[NOTE]
+====
+Some elements, such as code snippets or reused text snippets, will not render correctly in Github.
+====
+
+== Reference documentation
+
+Additional documentation intended for developers that may need to use the libaktualizr API should refer to link:https://advancedtelematic.github.io/aktualizr/index.html[this doc]:
+[NOTE]
+====
+The link above is for the doxygen docs on master. Doxygen docs for the following tagged release versions are also available:
+
+* https://advancedtelematic.github.io/aktualizr/2018.8/index.html[2018.8]
+* https://advancedtelematic.github.io/aktualizr/2018.9/index.html[2018.9]
+* https://advancedtelematic.github.io/aktualizr/2018.11/index.html[2018.11]
+* https://advancedtelematic.github.io/aktualizr/2018.12/index.html[2018.12]
+* https://advancedtelematic.github.io/aktualizr/2018.13/index.html[2018.13]
+* https://advancedtelematic.github.io/aktualizr/2019.1/index.html[2019.1]
+* https://advancedtelematic.github.io/aktualizr/2019.2/index.html[2019.2]
+* https://advancedtelematic.github.io/aktualizr/2019.3/index.html[2019.3]
+* https://advancedtelematic.github.io/aktualizr/2019.4/index.html[2019.4]
+* https://advancedtelematic.github.io/aktualizr/2019.5/index.html[2019.5]
+* https://advancedtelematic.github.io/aktualizr/2019.6/index.html[2019.6]
+* https://advancedtelematic.github.io/aktualizr/2019.7/index.html[2019.7]
+* https://advancedtelematic.github.io/aktualizr/2019.8/index.html[2019.8]
+* https://advancedtelematic.github.io/aktualizr/2019.9/index.html[2019.9]
+* https://advancedtelematic.github.io/aktualizr/2019.10/index.html[2019.10]
+* https://advancedtelematic.github.io/aktualizr/2019.11/index.html[2019.11]
+* https://advancedtelematic.github.io/aktualizr/2020.1/index.html[2020.1]
+* https://advancedtelematic.github.io/aktualizr/2020.2/index.html[2020.2]
+* https://advancedtelematic.github.io/aktualizr/2020.3/index.html[2020.3]
+* https://advancedtelematic.github.io/aktualizr/2020.4/index.html[2020.4]
+* https://advancedtelematic.github.io/aktualizr/2020.5/index.html[2020.5]
+* https://advancedtelematic.github.io/aktualizr/2020.6/index.html[2020.6]
+* https://advancedtelematic.github.io/aktualizr/2020.7/index.html[2020.7]
+* https://advancedtelematic.github.io/aktualizr/2020.8/index.html[2020.8]
+* https://advancedtelematic.github.io/aktualizr/2020.9/index.html[2020.9]
+* https://advancedtelematic.github.io/aktualizr/2020.10/index.html[2020.10]
+====
+
+== Release process
+
+The process for releasing a new version of aktualizr and updating the documentation is described link:ota-client-guide/modules/ROOT/pages/release-process.adoc[here].

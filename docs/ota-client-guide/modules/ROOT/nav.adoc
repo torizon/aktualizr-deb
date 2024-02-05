@@ -1,0 +1,126 @@
+// MC: NOTE ABOUT TOC
+// Adding "pageroot" attr so that TOC that will also work directly in GitHub. Because...
+// In Antora the "pages" subdir is implcit added to the xref path at build time.
+// if you add "/pages" Antora will intepret it as "pages/pages".
+// The pages subdir is NOT implicit when viewing source files in Github.
+
+ifdef::env-github[:pageroot: pages/]
+ifndef::env-github[:pageroot:]
+
+.Introduction to the Developer Tools
+* xref:{pageroot}index.adoc[Introduction]
+* xref:{pageroot}developer-tools.adoc[Developer tools]
+* xref:{pageroot}workflow-overview.adoc[Basic OTA update workflow]
+* xref:{pageroot}evaluation-to-prod.adoc[Moving from evaluation to production]
+// NEW topics
+
+.Key Concepts
+// NEW/updated topics
+* xref:{pageroot}software-management.adoc[Software management]
+** xref:{pageroot}supporting-technologies.adoc[Supporting technologies]
+** xref:{pageroot}yocto.adoc[Yocto]
+// ---
+** xref:{pageroot}ostree-and-treehub.adoc[OSTree and TreeHub]
+** xref:{pageroot}comparing-full-filesystem-update-strategies.adoc[Comparing full-filesystem update strategies]
+// ---
+* xref:{pageroot}security.adoc[Security]
+** xref:{pageroot}pki.adoc[Key management]
+** xref:{pageroot}client-provisioning-methods.adoc[Device provisioning]
+** xref:{pageroot}uptane.adoc[The Uptane security specification]
+// future iteration: * xref:{pageroot}prod-intro[Testing and production environments]
+
+
+.Evaluate OTA Connect
+* xref:{pageroot}intro-evaluate.adoc[Evaluating OTA Connect]
+* xref:{pageroot}generating-provisioning-credentials.adoc[Get a provisioning Key]
+* xref:{pageroot}build-images.adoc[Use our sample recipes to build disk images]
+** xref:{pageroot}build-raspberry.adoc[Build for a Raspberry Pi]
+** xref:{pageroot}build-qemu.adoc[Build for QEMU]
+** xref:{pageroot}build-agl.adoc[Build for Automotive Grade Linux]
+* xref:{pageroot}simulate-device-basic.adoc[Simulate a device without building a disk image]
+* xref:{pageroot}pushing-updates.adoc[Add software to your Yocto image]
+* xref:{pageroot}update-single-device.adoc[Update a second device with the sample software]
+
+.Integrate OTA Connect
+* xref:{pageroot}intro-prep.adoc[Recommended steps]
+* xref:{pageroot}recommended-clientconfig.adoc[Recommended configurations]
+* xref:{pageroot}add-environments.adoc[Set up additional environments]
+
+* xref:{pageroot}libaktualizr-why-use.adoc[Integrate libaktualizr into your solution]
+** xref:{pageroot}libaktualizr-getstarted.adoc[Get started with libaktualizr]
+** xref:{pageroot}libaktualizr-update-secondary.adoc[Updating a Secondary ECU with libaktualizr]
+
+* xref:{pageroot}build-ota-enabled-images.adoc[Build and deploy OTA-enabled disk images]
+** xref:{pageroot}supported-boards.adoc[Supported boards]
+** xref:{pageroot}yocto-release-branches.adoc[Yocto release branches]
+** xref:{pageroot}add-ota-functonality-existing-yocto-project.adoc[Add OTA functionality to a Yocto project]
+** xref:{pageroot}libaktualizr-integrate.adoc[Add libaktualizr integration to a Yocto project]
+
+* xref:{pageroot}bsp-integration.adoc[Add support for new hardware]
+** xref:{pageroot}add-board-class.adoc[Adding a board class]
+** xref:{pageroot}setup-boot-image-for-ostree.adoc[Set up boot image layout for OSTree compatibility]
+** xref:{pageroot}add-meta-updater-to-vendors-sdk.adoc[Add meta-updater features to the vendor's SDK]
+** xref:{pageroot}troubleshooting-bsp-integration.adoc[Troubleshooting BSP Integration]
+
+* xref:{pageroot}device-cred-prov-steps.adoc[Provision devices]
+** xref:{pageroot}generate-selfsigned-root.adoc[Generate a fleet root certificate]
+** xref:{pageroot}provide-root-cert.adoc[Register your fleet root certificate]
+** xref:{pageroot}generate-devicecert.adoc[Generate device certificates]
+** xref:{pageroot}hsm-provisioning-example.adoc[Generate a device certificate using an HSM]
+** xref:{pageroot}enable-device-cred-provisioning.adoc[Enable and install device certificates]
+
+* xref:{pageroot}secure-software-updates.adoc[Secure your software repository]
+** xref:{pageroot}install-garage-sign-deploy.adoc[Install the garage-deploy tool]
+** xref:{pageroot}keep-local-repo-on-external-storage.adoc[Keep your repository on external storage]
+** xref:{pageroot}rotating-signing-keys.adoc[Rotate keys for Root and Targets metadata]
+** xref:{pageroot}finding-unsigned-metadata.adoc[Find the unsigned Root and Targets metadata]
+** xref:{pageroot}change-signature-thresholds.adoc[Change signature thresholds]
+** xref:{pageroot}metadata-expiry.adoc[Manage metadata expiry dates]
+
+.Deploy your OTA-enabled solution
+* xref:{pageroot}deploy-checklist.adoc[Deploying to production]
+
+.How to
+* xref:{pageroot}cross-deploy-images.adoc[Transfer software to another repository]
+* xref:{pageroot}enable-shared-cred-provisioning.adoc[Configure devices to use shared-credential provisioning]
+* xref:{pageroot}how-can-i-check-which-ostree-version-is-installed.adoc[Check which OSTree commit is deployed]
+* xref:{pageroot}use-your-own-deviceid.adoc[Configure your own device IDs]
+* xref:{pageroot}build-only-ostree.adoc[Build only the OSTree part]
+* xref:{pageroot}rollback.adoc[Set up rollback behavior]
+* xref:{pageroot}deb-package-install.adoc[Install the client from a deb package]
+* xref:{pageroot}upload-large-binary.adoc[Upload a binary file]
+* xref:{pageroot}remove-sw-version.adoc[Remove a software version]
+* xref:{pageroot}push-images-with-bitbake.adoc[Upload Yocto images using offline credentials]
+* xref:{pageroot}virtual-secondaries.adoc[Use Virtual Secondaries]
+
+.Reference
+// MC: Do in second iteration: * xref:{pageroot}otaconnect-identifiers.adoc[Identifiers]
+* xref:{pageroot}aktualizr-config-options.adoc[Client configuration options]
+* xref:{pageroot}build-configuration.adoc[Build configuration options]
+* xref:{pageroot}garage-sign-reference.adoc[Garage-sign commands and options]
+* xref:{pageroot}customise-targets-metadata.adoc[Customize Targets metadata]
+* xref:{pageroot}aktualizr-runningmodes-finegrained-commandline-control.adoc[Client commands]
+* xref:{pageroot}provisioning-methods-and-credentialszip.adoc[Contents of the credentials file]
+* xref:{pageroot}useful-bitbake-commands.adoc[Bitbake commands]
+* xref:{pageroot}ostree-usage.adoc[OSTree commands]
+// xref:{pageroot}ecu_events.adoc[ECU events]
+* xref:{pageroot}meta-updater-usage.adoc[Advanced usage of meta-updater]
+
+.Test and simulate OTA functions
+* xref:{pageroot}simulate-device-cred-provtest.adoc[Simulate device credentials]
+* xref:{pageroot}posix-secondaries-bitbaking.adoc[Simulate a Primary and Secondary ECU]
+** xref:{pageroot}posix-secondaries.adoc[Configuration and emulation on a local host]
+* xref:{pageroot}fault-injection.adoc[Simulate installation failures for testing]
+* xref:{pageroot}uptane-generator.adoc[Simulate Uptane metadata transactions]
+* xref:{pageroot}device-monitoring-with-zabbix.adoc[Monitor aktualizr resource usage with Zabbix]
+
+.Troubleshooting
+* xref:{pageroot}troubleshooting.adoc[Troubleshooting]
+* xref:{pageroot}reporting-problems.adoc[Reporting problems]
+
+.For Contributors
+// Dev-authored topics
+* xref:{pageroot}release-process.adoc[Packaging an aktualizr release on github]
+* xref:{pageroot}schema-migrations.adoc[Add a schema migration]
+* xref:{pageroot}debugging-tips.adoc[Debugging the client]
+* xref:{pageroot}meta-updater-testing.adoc[Testing meta-updater]

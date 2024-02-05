@@ -1,0 +1,90 @@
+= Build Configuration Options
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+== Configuration variables in meta-updater
+
+Here, we provide reference documentation on how to configure link:https://github.com/advancedtelematic/meta-updater[meta-updater]. Below are the variables that you can set in your `local.conf` to control the finer points of your build process.
+
+.OTA-related options for building disk images
+[cols="1,2a",options="header"]
+|====================
+| Option | Description
+| `OSTREE_BRANCHNAME`|OSTree branch name. Defaults to `$\{SOTA_HARDWARE_ID}`. Particularly useful for grouping similar images. Should only contain characters from the character set `[a-zA-Z0-9_-]`.
+| `OSTREE_REPO`|Path to your OSTree repository. Defaults to `$\{DEPLOY_DIR_IMAGE}/ostree_repo`
+| `OSTREE_OSNAME`|OS deployment name on your target device. For more information about deployments and osnames see the https://ostreedev.github.io/ostree/deployment/[OSTree documentation]. Defaults to "poky".
+| `OSTREE_COMMIT_BODY`|Message attached to OSTree commit. Empty by default.
+| `OSTREE_COMMIT_SUBJECT`|Commit subject used by OSTree. Defaults to `Commit-id: $\{IMAGE_NAME}`
+| `OSTREE_UPDATE_SUMMARY`|Set this to '1' to update summary of OSTree repository on each commit. '0' by default.
+| `OSTREE_DEPLOY_DEVICETREE`|Set this to '1' to include devicetree(s) to boot.
+| `OSTREE_DEVICETREE`| A list of device tree blob(s) to include in the OSTree image. Defaults to `$\{KERNEL_DEVICETREE}`.
+| `GARAGE_SIGN_AUTOVERSION`|Set this to '1' to automatically fetch the last version of the garage tools installed by the aktualizr-native. Otherwise use the fixed version specified in the recipe.
+| `GARAGE_TARGET_NAME`|Target name used in the Uptane metadata. Defaults to `$\{OSTREE_BRANCHNAME}`.
+| `GARAGE_TARGET_URL` | Sets the `--url` parameter of `garage-sign targets add`, which sets a custom URL for the Image repository targets.
+| `GARAGE_TARGET_EXPIRES` |
+// MC: This block shows reusable content snippets when the content is rendered in the docs portal.
+// We reuse the same descriptions in multiple places with includes - if rendered in Github (where includes aren't allowed), we fall back to the old descriptions.
+ifdef::env-github[Sets the `--expires` parameter of `garage-sign targets sign`. Format is a UTC instant such as '2018-01-01T00:01:00Z'.]
+ifndef::env-github[]
+include::partial$config-descriptions.adoc[tags=metadata-expires]
+----
+GARAGE_TARGET_EXPIRES = "2018-01-01T00:01:00Z"
+----
+endif::[]
+More detail is available in the xref:metadata-expiry.adoc[metadata expiry] page.
+| `GARAGE_TARGET_EXPIRE_AFTER` |
+// MC: This block shows reusable content snippets when the content is rendered in the docs portal.
+// We reuse the same descriptions in multiple places with includes - if rendered in Github (where includes aren't allowed), we fall back to the old descriptions.
+ifdef::env-github[Sets the `--expire-after` parameter of `garage-sign targets sign`. Format is in years, months, and days (each optional, but in that order), such as '1Y3M5D'.]
+ifndef::env-github[]
+include::partial$config-descriptions.adoc[tags=metadata-expireafter]
+----
+GARAGE_TARGET_EXPIRE_AFTER = "1Y3M5D"
+----
+endif::[]
+More detail is available in the xref:metadata-expiry.adoc[metadata expiry] page.
+| `INITRAMFS_IMAGE`|The initramfs/initrd image that is used as a proxy while booting into OSTree deployment. Do not change this setting unless you are sure that your initramfs can serve as such a proxy.
+| `SOTA_PACKED_CREDENTIALS`|When set, your OSTree commit will be pushed to a remote repo as a bitbake step. This should be the path to a zipped credentials file in xref:provisioning-methods-and-credentialszip.adoc[the format accepted by garage-push].
+| `SOTA_DEPLOY_CREDENTIALS`|When set to '1' (default value), deploys credentials to the built image. Override it in `local.conf` to built a generic image that can be provisioned manually after the build.
+| `SOTA_CLIENT_PROV`|Which provisioning method to use. Valid options are `aktualizr-shared-prov`, `aktualizr-device-prov`, and `aktualizr-device-prov-hsm`. See the xref:client-provisioning-methods.adoc[client provisioning methods] page for more information on these provisioning methods. The default is `aktualizr-shared-prov`. This can also be set to an empty string to avoid using a provisioning recipe.
+| `SOTA_CLIENT_FEATURES`|Extensions to aktualizr. The only valid options are `hsm` (to build with HSM support), `ubootenv` (to enable rollback support in U-Boot; currently only supported for Raspberry Pi), and `serialcan` (to enable serial CAN support).
+| `SOTA_SECONDARY_CONFIG`|A file containing JSON configuration for Secondaries. It will be installed into `/etc/sota/ecus` on the device and automatically provided to aktualizr. See the guide on xref:posix-secondaries-bitbaking.adoc[bitbaking POSIX Secondaries] for more details.
+| `SOTA_HARDWARE_ID`|A custom hardware ID that will be written to the aktualizr config. Defaults to MACHINE if not set.
+| `SOTA_MAIN_DTB`|The base device tree to use with the kernel. Used together with FIT images. You can change it, and the device tree will also be changed after the update.
+| `SOTA_DT_OVERLAYS`|A whitespace-separated list of used device tree overlays for FIT image. This list is OSTree-updateable as well.
+| `SOTA_EXTRA_CONF_FRAGS`|Extra https://lxr.missinglinkelectronics.com/uboot/doc/uImage.FIT/overlay-fdt-boot.txt[configuration fragments] for FIT image.
+| `RESOURCE_xxx_pn-aktualizr`|Controls maximum resource usage of the aktualizr service, when `aktualizr-resource-control` is installed on the image. See xref:meta-updater-usage.adoc#_aktualizr_service_resource_control[aktualizr service resource control] for details.
+| `SOTA_POLLING_SEC`|Sets polling interval for aktualizr to check for updates if aktualizr-polling-interval is included in the image.
+|====================
+
+== Custom aktualizr versions
+
+You can override the version of aktualizr included in your image. This requires that the version you wish to run is pushed to the https://github.com/advancedtelematic/aktualizr[aktualizr github repo]. You can then use these settings in your `local.conf` to simplify the development process:
+
+[options="header"]
+|======================
+| Option                              | Effect
+| `require classes/sota_bleeding.inc` | Build the latest head (by default, using the master branch) of Aktualizr
+| `BRANCH_pn-aktualizr = "mybranch"`
+
+`BRANCH_pn-aktualizr-native = "mybranch"` | Build `mybranch` of Aktualizr. Note that both of these need to be set. This is normally used in conjunction with `require classes/sota_bleeding.inc`
+| `SRCREV_pn-aktualizr = "1004efa3f86cef90c012b34620992b5762b741e3"`
+
+`SRCREV_pn-aktualizr-native = "1004efa3f86cef90c012b34620992b5762b741e3"` | Build the specified revision of Aktualizr. Note that both of these need to be set. This can be used in conjunction with `BRANCH_pn-aktualizr` and `BRANCH_pn-aktualizr-native` but will conflict with `require classes/sota_bleeding.inc`
+| `TOOLCHAIN_HOST_TASK_append = " nativesdk-cmake "` | Use with `bitbake -c populate_sdk core-image-minimal` to build an SDK. See the https://github.com/advancedtelematic/aktualizr#developing-against-an-openembedded-system[aktualizr repo] for more information.
+|======================
+
+== Overriding target version
+*Warning: overriding target version is a dangerous operation, make sure you understand this section completely before doing it.*
+
+Every time you build an image with `SOTA_PACKED_CREDENTIALS` set, a new entry in your Uptane metadata is created and you can see it in the OTA Garage UI if you're using one. Normally this version will be equal to OSTree hash of your root file system. If you want it to be different though you can override is using one of two methods:
+
+1. Set `GARAGE_TARGET_VERSION` variable in your `local.conf`.
+2. Write a recipe or a bbclass to write the desired version to `$\{STAGING_DATADIR_NATIVE}/target_version`. An example of such bbclass can be found in `classes/target_version_example.bbclass`.
+
+Please note that [target name, target version] pairs are expected to be unique in the system. If you build a new target with the same target version as a previously built one, the old package will be overwritten on the update server. It can have unpredictable effect on devices that have this version installed, and it is not guaranteed that information will be reported correctly for such devices or that you will be able to update them (we're doing our best though). The easiest way to avoid problems is to make sure that your overriding version is as unique as an OSTree commit hash.

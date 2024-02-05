@@ -1,0 +1,31 @@
+= Configure your own device IDs
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+
+In OTA Connect, a device has two types of identifiers: an internal device UUID and a standard device ID. By default, OTA Connect generates a random device ID for you, but you can also create your own device ID. You can later use this unique device ID to xref:ota-web::create-custom-device-fields.adoc[create custom device fields] and xref:ota-web::create-smart-group.adoc[group devices].
+
+You can create a custom device ID in one of the following ways:
+
+* Specify your unique device ID in the aktualizr configuration. For more information, see the xref:aktualizr-config-options.adoc#_provision[reference documentation].
+
+* If you use the device-credential provisioning method, when you xref:generate-devicecert.adoc[generate a device certificate], update the following command with your custom device ID:
++
+```
+export device_id=${DEVICE_ID:-$\{DEVICE_UUID}}
+```
++
+.Custom device ID
+====
+You want to use the following link:https://en.wikipedia.org/wiki/Vehicle_identification_number[vehicle identification number (VIN)] as your device ID: `SAJWA1C78D8V38055`.
+```
+export device_id=SAJWA1C78D8V38055
+```
+====
+
+OTA Connect will not generate a new device ID but use the device ID that you have defined in your device certificates.

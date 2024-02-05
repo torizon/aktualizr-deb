@@ -1,0 +1,18 @@
+[tls]
+server_url_path = "/var/sota/import/gateway.url"
+cert_source = "pkcs11"
+pkey_source = "pkcs11"
+
+[p11]
+module = "/usr/lib/softhsm/libsofthsm2.so"
+pass = "1234"
+uptane_key_id = "03"
+tls_clientcert_id = "01"
+tls_pkey_id = "02"
+
+[uptane]
+key_source = "pkcs11"
+
+[import]
+base_path = "/var/sota/import"
+tls_cacert_path = "root.crt"

@@ -1,0 +1,22 @@
+= Register the Root Certificate for your Fleet
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+
+//MC: This is a copy of the topic "provide-testroot-cert.adoc" but intended for the "prod" use case. Need to use more includes to reduce redundancy
+
+Once you are ready to move to production, you need to have your final Fleet Root certificate registered with your production account.
+
+
+* To register your Fleet Root certificate with HERE OTA Connect, send it to link:mailto:otaconnect.support@here.com[otaconnect.support@here.com].
+
+If you followed our recommendations, you should have one OTA Connect account for testing and another for production. Make sure that you specify that this certificate is for your *production* account.
+
+* While you wait for confirmation from the OTA Connect support team, you can already set up your xref:generate-devicecert.adoc[device certificate generation].
+
+* Once you've received confirmation that the Fleet Root certificate has been registered, you can xref:enable-device-cred-provisioning.adoc[enable device-credential provisioning and install the certificates] on your devices.

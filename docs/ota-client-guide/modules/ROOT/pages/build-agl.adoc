@@ -1,0 +1,93 @@
+= Build an Automotive Grade Linux image
+:page-partial:
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+include::ota-client::partial$aktualizr-version.adoc[]
+
+
+:page-layout: page
+:page-categories: [quickstarts]
+:page-date: 2017-05-16 15:54:29
+:page-order: 3
+:icons: font
+:device: AGL-supported board
+:machine: <machine-name>
+:image: agl-demo-platform
+
+{product-name} lets you easily manage OTA updates to embedded devices running custom-built Yocto images. It works great with Automotive Grade Linux, so building an AGL image is one easy way to get started. If your planned project is automotive, AGL is a great choice to start out with. Out of the box, {product-name} works with AGL builds for QEMU and Raspberry Pi Model 3.
+
+// Most of the content here is the same as the Raspberry Pi instructions, so we re-use the chunks we can.
+
+include::ota-client::page$build-raspberry.adoc[tags=prereqs]
+
+== Create your AGL Yocto build environment
+
+=== Get the AGL code
+
+First, use the manifest file for AGL's Itchy Icefish release to download the required repositories:
+
+----
+mkdir myproject
+cd myproject
+repo init -b icefish -m icefish_9.0.1.xml -u https://gerrit.automotivelinux.org/gerrit/AGL/AGL-repo
+repo sync
+----
+
+.What is this actually doing?
+****
+Yocto is a set of tools, templates and methods for building Linux systems from scratch. Automotive Grade Linux is a complete Linux distribution designed for in-car systems. It includes base system layers from Poky and OpenEmbedded, board support layers for popular automotive platforms, and quite a lot more.
+
+All of these layers are assembled into a built Linux system by Bitbake, the build tool of the Yocto Project, based on the instructions in the recipes inside the layers.
+****
+
+=== Run environment setup script
+
+Now you can run the following script to get the environment set up:
+
+----
+source meta-agl/scripts/aglsetup.sh -m <target-architecture> agl-sota <1>
+----
+<1> Where `<target-architecture>` is either `raspberrypi3` or `qemux86-64`.
+
+IMPORTANT: Only `raspberrypi3` and `qemux86-64` will work out of the box. If you want to create an {product-name-short}-compatible build for one of the other architectures AGL supports, you may need to write a BSP layer for that board. You can take the link:https://github.com/advancedtelematic/meta-updater-raspberrypi/tree/morty/recipes-bsp[Raspberry Pi BSP] as an example of what's needed. You can also link:mailto:otaconnect.support@here.com[contact us directly] to inquire about commercial development of BSP layers for specific boards.
+
+include::ota-client::page$build-raspberry.adoc[tags=config]
+
+== Bitbake
+
+Now you're ready to build your image.
+
+[subs=+attributes]
+----
+bitbake agl-image-minimal
+----
+
+This step will take a while. Building everything from scratch, it will likely take several hours.
+
+If the build fails due a problem with the tar recipe, try this command:
+
+----
+bitbake -c clean tar-native
+----
+
+You can then retry bitbaking your image.
+
+== Running the built image
+
+=== Put the built image on an SD card for Raspberry Pi 3
+
+You can now flash the image onto an SD card using the same method as described for a xref:build-raspberry.adoc#_put_the_built_image_on_an_sd_card[regular Raspberry Pi build]. However, the exact image you'll need will vary depending on the architecture you're building forfootnote:[For example, building the `agl-image-minimal` target for Raspberry Pi 3 creates an image at `build/tmp/deploy/images/raspberrypi3/agl-image-minimal-raspberrypi3.wic`.], but it will be located in the `/tmp/deploy/images` directory under your build directory. You can also use https://www.balena.io/etcher/[Etcher, window="_blank"] to write the image, or follow the normal flashing procedure for your device if applicable.
+
+TIP: You can also write the image using `dd`, but since the wrong kind of typo in a dd command is so dangerous, we don't recommend it.
+
+=== Run with QEMU
+
+You can now run the image in QEMU using the same method as described for a xref:build-qemu.adoc#_run_the_built_image_with_qemu[regular QEMU build]. However, the exact image you'll need will vary depending on the architecture you're building forfootnote:[For example, building the `agl-image-minimal` target for QEMU creates an image at `build/tmp/deploy/images/qemux86-64/agl-image-minimal-qemux86-64.ota-ext4`.], but it will be located in the `/tmp/deploy/images` directory under your build directory.
+
+include::ota-client::partial$recommended-steps.adoc[tags=firstbuild-nextstep]

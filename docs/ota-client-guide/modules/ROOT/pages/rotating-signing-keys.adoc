@@ -1,0 +1,65 @@
+= Rotate keys for Root and Targets metadata
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+Before you start, make sure that you have installed the https://github.com/advancedtelematic/ota-tuf/tree/master/cli[garage-sign] tool. If you are on a Debian-based Linux distro, you can also install the `garage-sign` tool with the xref:install-garage-sign-deploy.adoc[garage-deploy] tool as they are packaged together.
+
+IMPORTANT: After you rotate keys, you will not be able to upload software images via the OTA Connect web UI. Use xref:push-images-with-bitbake.adoc[BitBake] or xref:upload-large-binary.adoc[garage-sign] instead.
+
+*To rotate the keys:*
+
+. Create a local image repository.
++
+----
+garage-sign init --repo myimagerepo --credentials /path/to/credentials.zip
+----
++
+A `./tuf/myimagerepo/` directory tree is created in the current directory.
+This directory should be secured on an encrypted filesystem.
+
+. Generate new Root and Targets keys.
++
+----
+garage-sign key generate --repo myimagerepo --name myroot --type rsa
+garage-sign key generate --repo myimagerepo --name mytargets --type rsa
+----
++
+IMPORTANT: Keep these keys offline on secure hardware and do not lose them. If you lose the root key for an environment, it will no longer be possible to update software on any devices connected to that environment. Once you rotate your keys offline, you are responsible for keeping them safe. HERE has no ability to recover them for you.
+
+. Pull the current `targets.json` file from OTA Connect.
++
+----
+garage-sign targets pull --repo myimagerepo
+----
+
+. Rotate your online Root key with the new offline key that you created in step 2.
++
+----
+garage-sign move-offline --repo myimagerepo --old-root-alias origroot \
+    --new-root myroot --new-targets mytargets
+----
++
+A new `root.json` file is generated, signed, and uploaded to OTA Connect.
+
+. Sign the current `targets.json` file with the new Targets key.
++
+TIP: This metadata expires after a predefined period. If you want to change the metadata expiry period, add the `--expires` or `--expire-after` option. For more information, see our guide to xref:metadata-expiry.adoc[managing metadata expiry dates].
++
+----
+garage-sign targets sign --repo myimagerepo --key-name mytargets
+----
+
+. Upload the newly signed `targets.json` to OTA Connect.
++
+----
+garage-sign targets push --repo myimagerepo
+----
+
+Your keys for software metadata are now offline.
+
+To learn more about the `garage-sign` commands and options, see its xref:garage-sign-reference.adoc[reference] documentation.

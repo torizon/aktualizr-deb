@@ -1,0 +1,35 @@
+= Key Management
+ifdef::env-github[]
+
+[NOTE]
+====
+We recommend that you link:https://docs.ota.here.com/ota-client/latest/{docname}.html[view this article in our documentation portal]. Not all of our articles render correctly in GitHub.
+====
+endif::[]
+
+
+OTA Connect uses public key cryptography to protect sensitive data. Once you move to production, we recommend that you manage these keys offline rather than having all keys managed on the OTA Connect server.
+
+== Risks keeping your keys on the OTA Connect server
+
+When you first sign up for an account, OTA Connect generates all of the keys you need and securely stores them, so you don't have to worry about key management to get started.
+
+However, this means that OTA Connect account password is the only thing standing between an attacker and your devices. If your password was guessed or stolen, the attacker would be install whatever software they wanted on any of devices OTA Connect manages. If your device happens to be a vehicle, such a breach could have very dangerous consequences.
+
+This is why we recommend xref:rotating-signing-keys.adoc[rotating your software signing keys offline] and xref:client-provisioning-methods.adoc[choosing an appropriately secure provisioning method].
+
+== Key Types
+
+If you follow our highest security recommendations, you'll need to manage several different keys.
+
+
+.Key Types
+[width="100%",cols="2,2,4",options="header"]
+|====================
+| Key Name | Purpose  |  Description
+| Fleet Root | Device Identity | The private key of your Fleet Root CA. This is used to sign the individual device certificates for your fleet of devices. The OTA Connect server can then validate device certificates to ensure that a connecting device is part of your fleet. See xref:client-provisioning-methods.adoc[Device Provisioning Methods] for more details.
+
+| Uptane Root | Software Integrity |  This key is used to sign the "root" metadata file for your software repository. This file contains information about all the roles that can sign software metadata. For more information on how to take these keys offline, see the topic "xref:rotating-signing-keys.adoc[Manage keys for software metadata]".
+| Uptane Targets | Software Integrity |  This  key is used to sign the "targets" metadata file for software updates. This file contains information about all the valid software files in your software repository. For more information on how to take these keys offline, see the topic "xref:rotating-signing-keys.adoc[Manage keys for software metadata]".
+|====================
+
