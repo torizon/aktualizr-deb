@@ -4,11 +4,11 @@ Upstream-Name: aktualizr
 Upstream-Contact: https://www.github.com/toradex/aktualizr/issues/new
 
 Files: *
-Copyright: 2024 Toradex AG.
+Copyright: 2024 Toradex AG
 License: BSD-3-clause
 
 Files: debian/*
-Copyright: 2024 Carlos Henrique Lima Melara <carlos.melara@toradex.com>
+Copyright: 2024 Toradex AG
 License: BSD-3-clause
 
 License: BSD-3-clause
