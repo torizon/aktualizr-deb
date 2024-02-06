@@ -18,6 +18,9 @@ jobs:
       - name: Update base container
         run: sudo apt-get -y update
 
+      - name: Set up binfmt with qemu
+        uses: docker/setup-qemu-action@v3
+
       - name: Build Debian Package
         uses: leonheldattoradex/build-deb-action@v1.7.1
         env:
