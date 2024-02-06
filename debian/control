@@ -30,6 +30,9 @@ Vcs-Git: https://www.github.com/torizon/aktualizr-pkg.git
 Package: aktualizr-torizon
 Architecture: any
 Depends:
+ curl,
+ jq,
+ unzip,
  ${shlibs:Depends},
  ${misc:Depends},
 Description: Toradex's fork of aktualizr
