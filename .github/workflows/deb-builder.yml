@@ -3,17 +3,24 @@ name: Build Debian Package
 on: push
 
 jobs:
-  build-debs:
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: ['ubuntu:22.04', 'ubuntu:20.04', 'debian:stable', 'debian:testing', 'debian:unstable']
+        arch: ['amd64', 'arm64', 'armhf']
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: leonheldattoradex/build-deb-action@v1.7.1
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Debian Package
+        uses: leonheldattoradex/build-deb-action@v1.7.1
         env:
           DEB_BUILD_OPTIONS: noautodbgsym
         with:
           buildpackage-opts: --build=binary --no-sign
-          host-arch: amd64
+          host-arch: ${{ matrix.arch }}
           apt-opts: --install-recommends
           extra-build-deps: ca-certificates
-          docker-image: ubuntu:20.04
-
+          docker-image: ${{ matrix.os }}
