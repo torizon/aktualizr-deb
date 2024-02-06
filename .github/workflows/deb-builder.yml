@@ -6,6 +6,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         os: ['ubuntu:22.04', 'ubuntu:20.04', 'debian:stable', 'debian:testing', 'debian:unstable']
         arch: ['amd64', 'arm64', 'armhf']
