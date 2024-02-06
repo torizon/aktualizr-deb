@@ -10,7 +10,15 @@ jobs:
       matrix:
         os: ['ubuntu:22.04', 'ubuntu:20.04', 'debian:stable', 'debian:testing', 'debian:unstable']
         arch: ['amd64', 'arm64', 'armhf']
-
+        exclude:
+          - os: ubuntu:22.04
+            arch: arm64
+          - os: ubuntu:22.04
+            arch: armhf
+          - os: ubuntu:20.04
+            arch: arm64
+          - os: ubuntu:20.04
+            arch: armhf
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
