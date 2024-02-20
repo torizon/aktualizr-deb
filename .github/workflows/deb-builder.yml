@@ -42,8 +42,8 @@ jobs:
   
       - name: Generating artifact directory name
         run: |
-          os_no_colon=$(echo "${{ matrix.os }}" | tr -d ':')
-          echo "artifacts=aktualizr-debian-${os_no_colon}-${{ matrix.arch }}" >> $GITHUB_ENV
+          os_no_colon=$(echo "${{ matrix.os }}" | tr ':' '-')
+          echo "artifacts=aktualizr-${os_no_colon}-${{ matrix.arch }}" >> $GITHUB_ENV
 
       - name: Upload Workflow Artifacts
         uses: actions/upload-artifact@v4
