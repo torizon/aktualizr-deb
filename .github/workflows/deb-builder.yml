@@ -51,3 +51,11 @@ jobs:
           name: ${{ env.artifacts }}
           path: debian/artifacts/*
           retention-days: 90
+
+      - name: Release
+        # FIXME: use tag when https://github.com/softprops/action-gh-release/issues/410 is closed
+        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: debian/artifacts/*
+
