@@ -40,7 +40,7 @@ jobs:
           extra-build-deps: ca-certificates
           docker-image: ${{ matrix.os }}
   
-      - name: Generating artifact directory name
+      - name: Generating artifact filename
         run: |
           os_no_colon=$(echo "${{ matrix.os }}" | tr ':' '-')
           echo "artifacts=aktualizr-${os_no_colon}-${{ matrix.arch }}" >> $GITHUB_ENV
@@ -52,10 +52,38 @@ jobs:
           path: debian/artifacts/*
           retention-days: 90
 
+  release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    env:
+      artifacts-dir: artifacts
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update base container
+        run: sudo apt-get -y update
+
+      - name: Download Artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ${{ github.workspace }}/${{ env.artifacts-dir }}
+          cd ${{ github.workspace }}/${{ env.artifacts-dir }}
+          gh run download ${{ github.run_id }}
+
+      - name: Zip Folders
+        run: |
+          cd ${{ github.workspace }}/${{ env.artifacts-dir }}
+          for folder in aktualizr*; do
+            zip -r "${folder}.zip" "$folder"
+          done
+
       - name: Release
         # FIXME: use tag when https://github.com/softprops/action-gh-release/issues/410 is closed
         uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
-        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: debian/artifacts/*
-
+          files: ${{ github.workspace }}/${{ env.artifacts-dir }}/*.zip
