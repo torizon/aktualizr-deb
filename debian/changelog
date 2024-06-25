@@ -1,3 +1,62 @@
+aktualizr-torizon (1.0+git20240529.d4ddfbe5+ds-0+toradex1) focal; urgency=medium
+
+  [ Carlos Henrique Lima Melara ]
+  * New upstream version 1.0+git20240529.d4ddfbe5+ds.
+  * Use /etc for installing configuration files as FHS 3.0 mandates.
+  * .github/workflows/deb-builder.yml: add reusable workflow.
+  * debian/README.source: add alternative way to get orig source.
+  * debian/aktualizr-torizon.install:
+      - install config file to disable ostree.
+      - install offline-updates config file.
+      - install secondaries.json.
+      - update install list.
+  * debian/control:
+      - add Recommends on lshw.
+      - add Uploaders field.
+      - add runtime dependencies for cloud's provision-device script.
+      - depends on debhelper-compat 12 because 13 isn't available.
+      - drop build dependency on libostree.
+      - improve short and long description.
+      - remove duplicate cmake on Build-Depends field.
+      - s/aktualizr-pkg/aktualizr-deb/ in Vcs-* fields
+      - s/torizon/toradex/ in Homepage field
+  * debian/copyright:
+      - add Comment field explaining the repack.
+      - update copyright information.
+  * debian/extra_files/:
+      - 50-secondaries.toml: enable secondaries.
+      - 60-polling-interval.toml: set the same interval as torizon.
+      - 70-disable-ostree.toml: rename from 80-*.
+      - 70-reboot.toml: remove ostree oriented file.
+      - 80-offline-updates.toml: add config file (off by default).
+      - bl_actions.sh: remove bootloader secondaries script.
+      - secondaries.json: remove bootloader secondary.
+  * debian/gbp.conf: add default parameters to git-buildpackage.
+  * debian/rules:
+      - disable tests during build.
+      - enable offline updates.
+      - get aktualizr's version from d/changelog.
+  * debian/source/options: make dpkg-source ignore our github workflow folder.
+  * debian/watch:
+      - remove +ds when comparing against upstream version.
+      - remove useless script.
+
+  [ Leonardo Held ]
+  * Add deb-builder workflow
+  * debian: control: update maintainers entry
+  * debian: copyright: update
+  * debian: upstream: remove dead folder
+  * github: workflows: add matrix to build on most apt-based distros
+  * github: workflows: deb-builder: update base container
+  * github: workflows: deb-builder: don't fail fast
+  * github: workflows: debuilder: add binfmt setup
+  * github: workflows: deb-builder: exclude ubuntu on arm
+  * github: workflows: deb-builder: upload workflows artifacts
+  * workflows: add release action
+  * workflows: fix release job
+
+ -- Carlos Henrique Lima Melara <carlos.melara@toradex.com>  Fri, 21 Jun 2024 11:05:52 -0300
+
 aktualizr-torizon (1.0+git20240124.72b0ec5+ds-1) focal; urgency=medium
 
   * Initial release.
